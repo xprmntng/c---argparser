@@ -1,7 +1,7 @@
 # Define the output executable name
 TARGET = argparse
 
-# Define where the build system should look for header files (both C and C++)
+# Define where the build system should look for header files
 INCLUDE_DIRECTORY = ./include
 
 # Define C++ compiler
