@@ -23,6 +23,18 @@ template <typename T> std::any parse(std::string s) {
     throw std::runtime_error(message);
 }
 
+struct Banana {
+    std::string color;
+};
+
+std::istream& operator>>(std::istream& is, Banana& banana) {
+    return is >> banana.color;
+}
+
+std::ostream& operator<<(std::ostream& os, Banana& banana) {
+    return os << "A " << banana.color << " banana";
+}
+
 class ArgParse {
 public:
 
@@ -67,4 +79,9 @@ int main() {
     ap.attempt_parse("float", "10e2");
     auto f = ap.get<double>("float");
     std::cout << f << std::endl;
+
+    ap.add_required_parameter<Banana>("banana");
+    ap.attempt_parse("banana", "brown");
+    auto banana = ap.get<Banana>("banana");
+    std::cout << banana << std::endl;
 }
