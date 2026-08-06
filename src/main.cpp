@@ -8,9 +8,25 @@
 #include <exception>
 #include <typeinfo>
 #include <format>
+#include <memory>
+
+#include <cxxabi.h>
 
 using ParseFunction = std::function<std::any(std::string)>;
 // using ParseFunction = std::any(*)(std::string);
+
+std::string demangle(const char* mangled_name) {
+    int status = 0;
+    // abi::__cxa_demangle allocates a raw C-string using std::malloc
+    char* demangled = abi::__cxa_demangle(mangled_name, nullptr, nullptr, &status);
+
+    if (status == 0 && demangled != nullptr) {
+        // Wrap in a unique_ptr to prevent a dynamic memory leak
+        std::unique_ptr<char, void(*)(void*)> cleanup(demangled, std::free);
+        return std::string(demangled);
+    }
+    return mangled_name; // Fallback to raw string if demangling failed
+}
 
 template <typename T> std::any parse(std::string s) {
     T value;
@@ -19,7 +35,7 @@ template <typename T> std::any parse(std::string s) {
         std::any value_as_any = value;
         return value_as_any;
     }
-    std::string message = std::format("Value `{}` cannot be converted to `{}`", s, typeid(T).name());
+    std::string message = std::format("Value `{}` cannot be converted to `{}`", s, demangle(typeid(T).name()));
     throw std::runtime_error(message);
 }
 
