@@ -56,8 +56,6 @@ private:
 };
 
 int main() {
-    // mypkg();
-
     ArgParse ap;
 
     ap.add_required_parameter<int>("age");
@@ -69,9 +67,4 @@ int main() {
     ap.attempt_parse("float", "10e2");
     auto f = ap.get<double>("float");
     std::cout << f << std::endl;
-
-    // std::vector<std::string> vec;
-    // vec.push_back("test_package");
-
-    // mypkg_print_vector(vec);
 }
