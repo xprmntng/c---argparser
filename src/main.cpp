@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <sstream>
 
 #include "args.hpp"
 
@@ -10,7 +11,9 @@ struct Banana {
 
 // Define how to read a Banana from a text stream (used by Args::parse)
 std::istream& operator>>(std::istream& is, Banana& banana) {
-    return is >> banana.color;
+    std::stringstream contents;
+    std::getline(is, banana.color);
+    return is;
 }
 
 // Define how to write a Banana to a text stream
