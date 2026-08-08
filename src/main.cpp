@@ -1,34 +1,22 @@
-// #include <any>
-// #include <concepts>
-// #include <cstdlib>
-// #include <exception>
-// #include <expected>
-// #include <format>
-// #include <functional>
 #include <iostream>
-// #include <memory>
-// #include <ranges>
-// #include <sstream>
 #include <string>
-// #include <typeinfo>
-// #include <unordered_map>
-// #include <vector>
 
 #include "args.hpp"
 
+// Define a custom type
 struct Banana {
     std::string color;
 };
 
+// Define how to read a Banana from a text stream (used by Args::parse)
 std::istream& operator>>(std::istream& is, Banana& banana) {
     return is >> banana.color;
 }
 
+// Define how to write a Banana to a text stream
 std::ostream& operator<<(std::ostream& os, Banana& banana) {
     return os << "A " << banana.color << " banana";
 }
-
-
 
 int main(int argc, char** argv) {
     Args::Parser parser;
@@ -46,7 +34,7 @@ int main(int argc, char** argv) {
     std::cout << "coolness-factor: " << f << std::endl;
 
     auto banana = parser.get<Banana>("banana");
-    std::cout << "Banana: " << banana << std::endl;
+    std::cout << "banana: " << banana << std::endl;
 
     if (positional_args.empty()) {
         std::cout << "No positional arguments were received" << std::endl;
