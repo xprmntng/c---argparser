@@ -8,14 +8,15 @@ INCLUDE_DIRECTORY = ./include
 CXX_COMPILER = g++
 
 # Define C++ compiler flags. Here's what they do:
-# -std: Defines which C or C++ standard to target; We target C++ 2020
+# -std: Defines which C or C++ standard to target
 # -Wall: Turns on most critical and commonly-encounted warnings
 # -Wextra: Turns on additional useful warnings not covered by -Wall
 # -MMD: Creates dependency files with `.d` extension that contain a list of
 #       your C++ source file's header file dependencies, causing your source
 #		code files to be rebuilt if a change to a header file is made
 # -MP: Tells gcc/g++ to pay attention to deleted or renamed header files
-CXX_COMPILER_FLAGS := -I$(INCLUDE_DIRECTORY) -std=c++20 -Wall -Wextra -MMD -MP
+# -g: Tells gcc to compile with debugging symbols included
+CXX_COMPILER_FLAGS = -I$(INCLUDE_DIRECTORY) -std=c++23 -Wall -Wextra -MMD -MP
 
 # Define C++ linker flags
 CXX_LINKER_FLAGS = 
@@ -31,7 +32,7 @@ CXX_OBJECTS := $(CXX_SOURCES:./src/%.cpp=./build/%.o)
 all: ./build/$(TARGET)
 
 # Define how we build our target
-./build/$(TARGET): $(CXX_OBJECTS) $(C_OBJECTS)
+./build/$(TARGET): $(CXX_OBJECTS)
 	mkdir --parents ./build
 	$(CXX_COMPILER) $(CXX_LINKER_FLAGS) -o ./build/$(TARGET) $(CXX_OBJECTS)
 
