@@ -26,6 +26,8 @@ namespace Args {
         std::vector<std::string> positional_arguments;
         std::vector<std::string> errors;
         for (const auto& arg : arguments) {
+            // TODO: Make sure user isn't passing an parameter that takes a value as a flag and
+            // vice versa
             if (arg.starts_with("--")) {
                 const auto arg_no_dashes = arg.substr(2);
                 const auto equal_sign_location = arg_no_dashes.find("=");
