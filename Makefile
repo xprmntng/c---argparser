@@ -27,6 +27,8 @@ CXX_SOURCES := $(shell find ./src -type f -iname \*.cpp)
 # Create a list of build targets from the above list of input files by
 # replacing `./src/` prefix and `.cpp` suffix with `./build/` prefix, `.o` suffix
 CXX_OBJECTS := $(CXX_SOURCES:./src/%.cpp=./build/%.o)
+# Turn the list of paths to .o files into a list of paths to dependency files (.d)
+CXX_DEPENDENCIES := $(CXX_OBJECTS:%.o=%.d)
 
 # Rule to build all targets defined by this Makefile
 all: ./build/$(TARGET)
@@ -44,3 +46,6 @@ all: ./build/$(TARGET)
 # `make clean` clears out the `build` directory
 clean:
 	rm -rf ./build/*
+
+# Track dependency (.d) files, which will catch if a header file changes
+-include $(CXX_DEPENDENCIES)
