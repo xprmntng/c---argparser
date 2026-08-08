@@ -70,6 +70,10 @@ namespace Args {
             return *this;
         }
 
+        Parser& add_flag_parameter(std::string flag_name);
+
+        bool is_flag_set(std::string flag_name);
+
         template <typename T>
         T get(std::string parameter_name) {
             std::any boxed;

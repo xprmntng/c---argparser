@@ -1,6 +1,12 @@
 #include "args.hpp"
 
 namespace Args {
+    Parser& Parser::add_flag_parameter(std::string flag_name) {
+        this->parsers[flag_name] = parse<bool>;
+        this->arguments[flag_name] = false;
+        return *this;
+    }
+
     std::vector<std::string>
     Parser::parse_program_arguments(int argc, char** argv) {
         const auto arguments = std::vector<std::string_view>(argv + 1, argv + argc);
@@ -24,7 +30,12 @@ namespace Args {
                 const auto arg_no_dashes = arg.substr(2);
                 const auto equal_sign_location = arg_no_dashes.find("=");
                 if (equal_sign_location == std::string::npos) {
-                    // TODO: Set the appropriate flag here
+                    const std::string parameter_name = std::string(arg_no_dashes);
+                    if (parsers.contains(parameter_name)) {
+                        this->arguments[parameter_name] = true;
+                    } else {
+                        errors.push_back("Found unrecognized flag parameter: --" + parameter_name);
+                    }
                 } else {
                     const auto parameter_name = std::string(arg_no_dashes.substr(0, equal_sign_location));
                     const auto argument = std::string(arg_no_dashes.substr(equal_sign_location + 1));
@@ -48,7 +59,6 @@ namespace Args {
         }
         return positional_arguments;
     }
-
 
     std::expected<void, std::string>
     Parser::attempt_parse(std::string parameter_name, std::string input) {
@@ -83,5 +93,9 @@ namespace Args {
             return std::unexpected(errors);
         }
         return {};
+    }
+
+    bool Parser::is_flag_set(std::string flag_name) {
+        return this->get<bool>(flag_name);
     }
 }

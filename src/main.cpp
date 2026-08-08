@@ -26,7 +26,8 @@ int main(int argc, char** argv) {
 
     parser.add_required_parameter<int>("age")
           .add_optional_parameter("coolness-factor", 5.0)
-          .add_required_parameter<Banana>("banana");
+          .add_required_parameter<Banana>("banana")
+          .add_flag_parameter("super-cool");
 
     const auto positional_args = parser.parse_program_arguments(argc, argv);
 
@@ -38,6 +39,9 @@ int main(int argc, char** argv) {
 
     auto banana = parser.get<Banana>("banana");
     std::cout << "banana: " << banana << std::endl;
+
+    bool super_cool = parser.is_flag_set("super-cool");
+    std::cout << "super-cool: " << super_cool << std::endl;
 
     if (positional_args.empty()) {
         std::cout << "No positional arguments were received" << std::endl;
