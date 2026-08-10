@@ -176,7 +176,7 @@ namespace Args {
             }
         }
         if (!errors.empty()) {
-            return unexpected(errors);
+            return unexpected(std::move(errors));
         }
         return {};
     }
