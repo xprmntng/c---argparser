@@ -27,16 +27,24 @@ CXX_SOURCES := $(shell find ./src -type f -iname \*.cpp)
 # Create a list of build targets from the above list of input files by
 # replacing `./src/` prefix and `.cpp` suffix with `./build/` prefix, `.o` suffix
 CXX_OBJECTS := $(CXX_SOURCES:./src/%.cpp=./build/%.o)
+
+CXX_OBJECTS_NO_MAIN := $(filter-out main.o,$(CXX_OBJECTS))
+
 # Turn the list of paths to .o files into a list of paths to dependency files (.d)
 CXX_DEPENDENCIES := $(CXX_OBJECTS:%.o=%.d)
 
 # Rule to build all targets defined by this Makefile
-all: ./build/$(TARGET)
+all: ./build/$(TARGET) ./lib/libargs.a
 
 # Define how we build our target
 ./build/$(TARGET): $(CXX_OBJECTS)
 	mkdir --parents ./build
 	$(CXX_COMPILER) $(CXX_LINKER_FLAGS) -o ./build/$(TARGET) $(CXX_OBJECTS)
+
+./lib/libargs.a: $(CXX_OBJECTS_NO_MAIN)
+	mkdir --parents $(@D)
+	ar crs ./lib/libargs.a $(CXX_OBJECTS_NO_MAIN)
+
 
 # Define how we compile .cpp files into .o files
 ./build/%.o: ./src/%.cpp

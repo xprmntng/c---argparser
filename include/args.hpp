@@ -8,6 +8,8 @@
 #include <ranges>
 #include <sstream>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <cxxabi.h>
@@ -30,7 +32,7 @@ namespace Args {
         }
     }
 
-    using ParseFunction = std::function<std::expected<std::any, std::string>(std::string)>;
+    using ParseFunction = std::function<std::expected<std::any, std::string>(const std::string&)>;
 
     // Define a template type parameter that limits the types to those who implement the >> operator
     // for std::istream&
@@ -40,7 +42,7 @@ namespace Args {
     };
 
     template <Parsable T>
-    std::expected<std::any, std::string> parse(std::string s) {
+    std::expected<std::any, std::string> parse(const std::string& s) {
         T value;
         std::istringstream stream(s);
         if ((stream >> value) && stream.eof()) {
@@ -57,25 +59,27 @@ namespace Args {
     public:
 
         template <typename T>
-        Parser& add_required_parameter(std::string name) {
+        Parser& add_required_parameter(const std::string& name) {
             this->parsers[name] = parse<T>;
+            this->registered_parameters.insert(name);
             return *this;
         }
 
         template <typename T>
-        Parser& add_optional_parameter(std::string name, T default_value) {
+        Parser& add_optional_parameter(const std::string& name, T default_value) {
             ParseFunction f = parse<T>;
             this->parsers[name] = f;
             this->arguments[name] = std::any(default_value);
+            this->registered_parameters.insert(name);
             return *this;
         }
 
-        Parser& add_flag_parameter(std::string flag_name);
+        Parser& add_flag_parameter(const std::string& flag_name);
 
-        bool is_flag_set(std::string flag_name);
+        bool is_flag_set(const std::string& flag_name);
 
         template <typename T>
-        T get(std::string parameter_name) {
+        T get(const std::string& parameter_name) {
             std::any boxed;
             if (!this->arguments.contains(parameter_name)) {
                 std::cerr << "Developer error: Program is not configured to accept a parameter "
@@ -86,19 +90,31 @@ namespace Args {
             return std::any_cast<T>(boxed);
         }
 
-        std::vector<std::string> parse_program_arguments(int argc, char** argv);
+        std::vector<std::string>
+        parse_program_arguments(int argc, char** argv);
 
         std::expected<std::vector<std::string>, std::vector<std::string>>
         parse_arguments(const std::vector<std::string_view>& arguments);
 
     private:
         std::expected<void, std::string>
-        attempt_parse(std::string parameter_name, std::string input);
+        attempt_parse(const std::string& parameter_name, const std::string& input);
 
         std::expected<void, std::vector<std::string>>
         check_for_missing_parameters();
 
+        std::expected<std::optional<std::string>, std::string>
+        handle_program_argument(std::string_view argument);
+
+        std::expected<std::optional<std::string>, std::string>
+        handle_parameter_with_value(const std::string& parameter_name, const std::string& value);
+
+        std::expected<std::optional<std::string>, std::string>
+        handle_flag(const std::string& flag_name);
+
         std::unordered_map<std::string, ParseFunction> parsers;
         std::unordered_map<std::string, std::any> arguments;
+        std::unordered_set<std::string> registered_flags;
+        std::unordered_set<std::string> registered_parameters;
     };
 }

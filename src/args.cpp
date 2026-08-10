@@ -1,18 +1,27 @@
 #include "args.hpp"
+#include "match.hpp"
+
+using std::expected;
+using std::optional;
+using std::string;
+using std::string_view;
+using std::unexpected;
+using std::vector;
 
 namespace Args {
-    Parser& Parser::add_flag_parameter(std::string flag_name) {
+    Parser& Parser::add_flag_parameter(const std::string& flag_name) {
         this->parsers[flag_name] = parse<bool>;
         this->arguments[flag_name] = false;
+        this->registered_flags.insert(flag_name);
         return *this;
     }
 
-    std::vector<std::string>
+    vector<string>
     Parser::parse_program_arguments(int argc, char** argv) {
-        const auto arguments = std::vector<std::string_view>(argv + 1, argv + argc);
+        const auto arguments = vector<string_view>(argv + 1, argv + argc);
         const auto result = parse_arguments(arguments);
         if (!result) {
-            const auto errors = result.error();
+            const auto& errors = result.error();
             for (const auto& error : errors) {
                 std::cerr << error << std::endl;
             }
@@ -21,40 +30,114 @@ namespace Args {
         return *result;
     }
 
-    std::expected<std::vector<std::string>, std::vector<std::string>>
-    Parser::parse_arguments(const std::vector<std::string_view>& arguments) {
-        std::vector<std::string> positional_arguments;
-        std::vector<std::string> errors;
-        for (const auto& arg : arguments) {
-            // TODO: Make sure user isn't passing an parameter that takes a value as a flag and
-            // vice versa
-            if (arg.starts_with("--")) {
-                const auto arg_no_dashes = arg.substr(2);
-                const auto equal_sign_location = arg_no_dashes.find("=");
-                if (equal_sign_location == std::string::npos) {
-                    const std::string parameter_name = std::string(arg_no_dashes);
-                    if (parsers.contains(parameter_name)) {
-                        this->arguments[parameter_name] = true;
-                    } else {
-                        errors.push_back("Found unrecognized flag parameter: --" + parameter_name);
-                    }
-                } else {
-                    const auto parameter_name = std::string(arg_no_dashes.substr(0, equal_sign_location));
-                    const auto argument = std::string(arg_no_dashes.substr(equal_sign_location + 1));
-                    const auto result = attempt_parse(parameter_name, argument);
-                    if (!result) {
-                        errors.push_back(result.error());
-                    }
-                }
+    struct PositionalArgument {
+        string value;
+    };
+
+    struct Flag {
+        string name;
+    };
+
+    struct ParameterWithValue {
+        string name;
+        string value;
+    };
+
+    using Extraction = std::variant<PositionalArgument, Flag, ParameterWithValue>;
+
+    Extraction extract(string_view argument) {
+        if (argument.starts_with("--")) {
+            const auto dashes_removed = argument.substr(2);
+            const auto equal_sign_location = dashes_removed.find("=");
+            bool contains_equal_sign = equal_sign_location != string::npos;
+            if (contains_equal_sign) {
+                const auto parameter_name = dashes_removed.substr(0, equal_sign_location);
+                const auto argument = dashes_removed.substr(equal_sign_location + 1);
+                return ParameterWithValue {
+                    string(parameter_name),
+                    string(argument)
+                };
             } else {
-                positional_arguments.push_back(std::string(arg));
+                return Flag { string(dashes_removed) };
+            }
+        } else {
+            return PositionalArgument { string(argument) };
+        }
+    }
+
+    expected<optional<string>, string>
+    Parser::handle_parameter_with_value(const string& parameter_name, const string& value) {
+        if (registered_flags.contains(parameter_name)) {
+            return unexpected(
+                std::format("--{} is a flag and does not take a value", parameter_name)
+            );
+        } else if (!registered_parameters.contains(parameter_name)) {
+            return unexpected(
+                std::format("Found unknown parameter: --{}", parameter_name)
+            );
+        }
+        auto result = attempt_parse(parameter_name, value);
+        if (!result) {
+            return unexpected(std::move(result.error()));
+        }
+        return {};
+    }
+
+    expected<optional<string>, string>
+    Parser::handle_flag(const string& flag_name) {
+        if (registered_parameters.contains(flag_name)) {
+            return unexpected(std::format(
+                "Parameter --{} takes a value but no value was provided", flag_name
+            ));
+        } else if (!registered_flags.contains(flag_name)) {
+            return unexpected(std::format(
+                "Found unknown flag: --{}", flag_name
+            ));
+        }
+        arguments[flag_name] = true;
+        return {};
+    }
+
+    expected<optional<string>, string>
+    Parser::handle_program_argument(string_view argument) {
+        Extraction extraction = extract(argument);
+        const auto result = std::visit(match {
+            [this](const ParameterWithValue& pv) mutable {
+                return handle_parameter_with_value(pv.name, pv.value);
+            },
+            [this](const Flag& flag) mutable {
+                return handle_flag(flag.name);
+            },
+            [](PositionalArgument& pa) -> expected<optional<string>, string> {
+                return std::move(pa.value);
+            }
+        }, extraction);
+        return result;
+    }
+
+    expected<vector<string>, vector<string>>
+    Parser::parse_arguments(const vector<string_view>& arguments) {
+        vector<string> positional_arguments;
+        vector<string> errors;
+        for (const auto& arg : arguments) {
+            auto result = handle_program_argument(arg);
+            if (!result) {
+                errors.push_back(std::move(result.error()));
+                continue;
+            }
+            // If a positional argument was found, add it to the list
+            auto optional_positional_argument = std::move(result).value();
+            if (optional_positional_argument.has_value()) {
+                positional_arguments.push_back(std::move(optional_positional_argument).value());
             }
         }
         const auto result = check_for_missing_parameters();
         if (!result) {
             const auto& missing_errors = result.error();
             errors.reserve(errors.size() + result.error().size());
-            errors.insert(errors.end(), missing_errors.begin(), missing_errors.end());
+            errors.insert(errors.end(),
+                          std::make_move_iterator(missing_errors.begin()),
+                          std::make_move_iterator(missing_errors.end()));
         }
         if (!errors.empty()) {
             return std::unexpected(errors);
@@ -62,8 +145,8 @@ namespace Args {
         return positional_arguments;
     }
 
-    std::expected<void, std::string>
-    Parser::attempt_parse(std::string parameter_name, std::string input) {
+    expected<void, string>
+    Parser::attempt_parse(const string& parameter_name, const string& input) {
         if (!this->parsers.contains(parameter_name)) {
             return std::unexpected(
                 std::format("Found unexpected parameter \"--{}\"", parameter_name)
@@ -81,9 +164,9 @@ namespace Args {
         return {};
     }
 
-    std::expected<void, std::vector<std::string>>
+    expected<void, vector<string>>
     Parser::check_for_missing_parameters() {
-        std::vector<std::string> errors;
+        vector<string> errors;
         for (const auto& key : std::views::keys(this->parsers)) {
             if (!this->arguments.contains(key)) {
                 errors.push_back(
@@ -92,12 +175,17 @@ namespace Args {
             }
         }
         if (!errors.empty()) {
-            return std::unexpected(errors);
+            return unexpected(errors);
         }
         return {};
     }
 
-    bool Parser::is_flag_set(std::string flag_name) {
-        return this->get<bool>(flag_name);
+    bool Parser::is_flag_set(const string& flag_name) {
+        if (!registered_flags.contains(flag_name)) {
+            std::cerr << "Developer error: This parser is not configured with a flag named `"
+                      << flag_name << '`' << std::endl;
+            std::exit(1);
+        }
+        return get<bool>(flag_name);
     }
 }
