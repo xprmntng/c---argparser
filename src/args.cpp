@@ -21,7 +21,7 @@ namespace Args {
         const auto arguments = vector<string_view>(argv + 1, argv + argc);
         auto result = parse_arguments(arguments);
         if (!result) {
-            const auto& errors = result.error();
+            const auto errors = std::move(result).error();
             for (const auto& error : errors) {
                 std::cerr << error << std::endl;
             }
