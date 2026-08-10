@@ -78,7 +78,7 @@ namespace Args {
         }
         auto result = attempt_parse(parameter_name, value);
         if (!result) {
-            return unexpected(std::move(result.error()));
+            return unexpected(std::move(result).error());
         }
         return {};
     }
@@ -131,16 +131,16 @@ namespace Args {
                 positional_arguments.push_back(std::move(optional_positional_argument).value());
             }
         }
-        const auto result = check_for_missing_parameters();
+        auto result = check_for_missing_parameters();
         if (!result) {
-            const auto& missing_errors = result.error();
-            errors.reserve(errors.size() + result.error().size());
+            auto missing_errors = std::move(result).error();
+            errors.reserve(errors.size() + missing_errors.size());
             errors.insert(errors.end(),
                           std::make_move_iterator(missing_errors.begin()),
                           std::make_move_iterator(missing_errors.end()));
         }
         if (!errors.empty()) {
-            return std::unexpected(errors);
+            return unexpected(std::move(errors));
         }
         return positional_arguments;
     }
@@ -148,15 +148,16 @@ namespace Args {
     expected<void, string>
     Parser::attempt_parse(const string& parameter_name, const string& input) {
         if (!this->parsers.contains(parameter_name)) {
-            return std::unexpected(
-                std::format("Found unexpected parameter \"--{}\"", parameter_name)
+            return unexpected(
+                std::format("Found unexpected parameter: --{}", parameter_name)
             );
         }
         ParseFunction f = this->parsers[parameter_name];
-        const auto result = f(input);
+        auto result = f(input);
         if (!result) {
+            const auto error_message = std::move(result).error();
             return std::unexpected(
-                std::format("For parameter --{}: {}", parameter_name, result.error())
+                std::format("For parameter --{}: {}", parameter_name, error_message)
             );
         }
         std::any boxed = *result;

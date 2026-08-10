@@ -49,10 +49,9 @@ namespace Args {
             std::any value_as_any = value;
             return value_as_any;
         }
-        std::string message = std::format(
+        return std::unexpected(std::format(
             "Value \"{}\" cannot be converted to `{}`", s, demangle(typeid(T).name())
-        );
-        return std::unexpected(message);
+        ););
     }
 
     class Parser {
