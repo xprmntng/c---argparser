@@ -19,7 +19,7 @@ namespace Args {
     vector<string>
     Parser::parse_program_arguments(int argc, char** argv) {
         const auto arguments = vector<string_view>(argv + 1, argv + argc);
-        const auto result = parse_arguments(arguments);
+        auto result = parse_arguments(arguments);
         if (!result) {
             const auto& errors = result.error();
             for (const auto& error : errors) {
@@ -27,7 +27,7 @@ namespace Args {
             }
             std::exit(1);
         }
-        return *result;
+        return std::move(result).value();
     }
 
     struct PositionalArgument {
