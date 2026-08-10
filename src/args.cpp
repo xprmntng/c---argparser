@@ -183,8 +183,8 @@ namespace Args {
 
     bool Parser::is_flag_set(const string& flag_name) {
         if (!registered_flags.contains(flag_name)) {
-            std::cerr << "Developer error: This parser is not configured with a flag named `"
-                      << flag_name << '`' << std::endl;
+            std::cerr << "Developer error: This parser is not configured with a flag named \""
+                      << flag_name << '"' << std::endl;
             std::exit(1);
         }
         return get<bool>(flag_name);
