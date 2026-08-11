@@ -49,9 +49,9 @@ namespace Args {
         string value;
     };
 
-    using Extraction = std::variant<PositionalArgument, Flag, ParameterWithValue>;
+    using Token = std::variant<PositionalArgument, Flag, ParameterWithValue>;
 
-    Extraction extract(string_view argument) {
+    Token extract_token_from_program_argument(string_view argument) {
         if (argument.starts_with("--")) {
             const auto dashes_removed = argument.substr(2);
             const auto equal_sign_location = dashes_removed.find("=");
@@ -72,7 +72,7 @@ namespace Args {
     }
 
     expected<optional<string>, string>
-    Parser::handle_parameter_with_value(const string& parameter_name, string_view value) {
+    Parser::handle_parameter_token_with_value(const string& parameter_name, string_view value) {
         if (registered_flags.contains(parameter_name)) {
             return unexpected(
                 std::format("--{} is a flag and does not take a value", parameter_name)
@@ -90,7 +90,7 @@ namespace Args {
     }
 
     expected<optional<string>, string>
-    Parser::handle_flag(const string& flag_name) {
+    Parser::handle_flag_token(const string& flag_name) {
         if (registered_parameters.contains(flag_name)) {
             return unexpected(std::format(
                 "Parameter --{} takes a value but no value was provided", flag_name
@@ -106,18 +106,18 @@ namespace Args {
 
     expected<optional<string>, string>
     Parser::handle_program_argument(string_view argument) {
-        Extraction extraction = extract(argument);
+        Token token = extract_token_from_program_argument(argument);
         const auto result = std::visit(match {
             [this](const ParameterWithValue& pv) mutable {
-                return handle_parameter_with_value(pv.name, pv.value);
+                return handle_parameter_token_with_value(pv.name, pv.value);
             },
             [this](const Flag& flag) mutable {
-                return handle_flag(flag.name);
+                return handle_flag_token(flag.name);
             },
             [](PositionalArgument& pa) -> expected<optional<string>, string> {
                 return std::move(pa.value);
             }
-        }, extraction);
+        }, token);
         return result;
     }
 

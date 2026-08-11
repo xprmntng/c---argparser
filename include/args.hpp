@@ -142,10 +142,10 @@ namespace Args {
         handle_program_argument(std::string_view argument);
 
         std::expected<std::optional<std::string>, std::string>
-        handle_parameter_with_value(const std::string& parameter_name, std::string_view value);
+        handle_parameter_token_with_value(const std::string& parameter_name, std::string_view value);
 
         std::expected<std::optional<std::string>, std::string>
-        handle_flag(const std::string& flag_name);
+        handle_flag_token(const std::string& flag_name);
 
         std::unordered_map<std::string, ParseFunction> parsers;
         std::unordered_map<std::string, std::any> arguments;
