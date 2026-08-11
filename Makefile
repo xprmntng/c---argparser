@@ -16,7 +16,7 @@ CXX_COMPILER = g++
 #		code files to be rebuilt if a change to a header file is made
 # -MP: Tells gcc/g++ to pay attention to deleted or renamed header files
 # -g: Tells gcc to compile with debugging symbols included
-CXX_COMPILER_FLAGS = -I$(INCLUDE_DIRECTORY) -std=c++23 -Wall -Wextra -MMD -MP
+CXX_COMPILER_FLAGS = -I$(INCLUDE_DIRECTORY) -std=c++23 -Wall -Wextra -MMD -MP -g
 
 # Define C++ linker flags
 CXX_LINKER_FLAGS = 
