@@ -7,14 +7,11 @@
 // Define a custom type
 struct Banana {
     std::string color;
-};
 
-// Define how to read a Banana from a text stream (used by Args::parse)
-std::istream& operator>>(std::istream& is, Banana& banana) {
-    std::stringstream contents;
-    std::getline(is, banana.color);
-    return is;
-}
+public:
+    // Define how to create a Banana from a string. This makes the type compatible with Arg::Parser
+    Banana(std::string_view s) : color(s) {}
+};
 
 // Define how to write a Banana to a text stream
 std::ostream& operator<<(std::ostream& os, Banana& banana) {
@@ -25,14 +22,18 @@ int main(int argc, char** argv) {
     Args::Parser parser;
 
     parser.add_required_parameter<int>("age")
-          .add_optional_parameter("coolness-factor", 5.0)
+          .add_required_parameter<std::string>("name")
           .add_required_parameter<Banana>("banana")
+          .add_optional_parameter("coolness-factor", 5.0)
           .add_flag_parameter("super-cool");
 
     const auto positional_args = parser.parse_program_arguments(argc, argv);
 
     auto age = parser.get<int>("age");
     std::cout << "age: " << age << std::endl;
+
+    auto name = parser.get<std::string>("name");
+    std::cout << "name: " << name << std::endl;
 
     auto f = parser.get<double>("coolness-factor");
     std::cout << "coolness-factor: " << f << std::endl;

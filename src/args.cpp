@@ -1,3 +1,5 @@
+#include <cstdint>
+
 #include "args.hpp"
 #include "match.hpp"
 
@@ -8,10 +10,14 @@ using std::string_view;
 using std::unexpected;
 using std::vector;
 
+using u8 = std::uint8_t;
+
 namespace Args {
     Parser& Parser::add_flag_parameter(const std::string& flag_name) {
-        this->parsers[flag_name] = parse<bool>;
-        this->arguments[flag_name] = false;
+        this->parsers[flag_name] = from_string<u8>;
+        // Bools are stored as 8-bit unsigned integers, given that the bool type doesn't implement
+        // std::from_chars
+        this->arguments[flag_name] = (u8)0;
         this->registered_flags.insert(flag_name);
         return *this;
     }
@@ -66,7 +72,7 @@ namespace Args {
     }
 
     expected<optional<string>, string>
-    Parser::handle_parameter_with_value(const string& parameter_name, const string& value) {
+    Parser::handle_parameter_with_value(const string& parameter_name, string_view value) {
         if (registered_flags.contains(parameter_name)) {
             return unexpected(
                 std::format("--{} is a flag and does not take a value", parameter_name)
@@ -94,7 +100,7 @@ namespace Args {
                 "Found unknown flag: --{}", flag_name
             ));
         }
-        arguments[flag_name] = true;
+        arguments[flag_name] = (u8)1;
         return {};
     }
 
@@ -146,7 +152,7 @@ namespace Args {
     }
 
     expected<void, string>
-    Parser::attempt_parse(const string& parameter_name, const string& input) {
+    Parser::attempt_parse(const string& parameter_name, string_view input) {
         if (!this->parsers.contains(parameter_name)) {
             return unexpected(
                 std::format("Found unexpected parameter: --{}", parameter_name)
@@ -160,8 +166,7 @@ namespace Args {
                 std::format("For parameter --{}: {}", parameter_name, error_message)
             );
         }
-        std::any boxed = *result;
-        this->arguments[parameter_name] = boxed;
+        this->arguments[parameter_name] = std::move(result).value();
         return {};
     }
 
@@ -187,6 +192,6 @@ namespace Args {
                       << flag_name << '"' << std::endl;
             std::exit(1);
         }
-        return get<bool>(flag_name);
+        return get<u8>(flag_name) != 0;
     }
 }

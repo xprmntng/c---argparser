@@ -32,39 +32,76 @@ namespace Args {
         }
     }
 
-    using ParseFunction = std::function<std::expected<std::any, std::string>(const std::string&)>;
-
-    // Define a template type parameter that limits the types to those who implement the >> operator
-    // for std::istream&
     template <typename T>
-    concept Parsable = requires(std::istream& is, T& out) {
-        { is >> out } -> std::same_as<std::istream&>;
+    concept HasStdFromChars = requires(const char* start, const char* end, T& out) {
+        {std::from_chars(start, end, out)} -> std::same_as<std::from_chars_result>;
     };
 
-    template <Parsable T>
-    std::expected<std::any, std::string> parse(const std::string& s) {
-        T value;
-        std::istringstream stream(s);
-        if ((stream >> value) && stream.eof()) {
-            std::any value_as_any = value;
-            return value_as_any;
+    template <HasStdFromChars T>
+    std::expected<T, std::string> from_string(std::string_view s) {
+        T out;
+        const char* start = s.data();
+        const char* end = s.data() + s.size();
+        auto [ptr, ec] = std::from_chars(start, end, out);
+        bool value_found = ec == std::errc();
+        bool entire_string_consumed = ptr == end;
+        if (!value_found || !entire_string_consumed) {
+            return std::unexpected(std::format(
+                "\"{}\" could not be converted to {}", s, demangle(typeid(T).name())
+            ));
         }
-        return std::unexpected(std::format(
-            "Value \"{}\" cannot be converted to `{}`", s, demangle(typeid(T).name())
-        ););
+        return out;
+    }
+
+    template <std::constructible_from<std::string_view> T>
+    std::expected<T, std::string> from_string(std::string_view s) {
+        return T(s);
+    }
+
+    template <typename T>
+    concept ParsableFromStringTemplate = requires(std::string_view s) {
+        { Args::from_string<T>(s) } -> std::same_as<std::expected<T, std::string>>;
+    };
+
+    template <typename T>
+    concept ParsableFromStringStatic = requires(std::string_view s) {
+        { T::from_string(s) } -> std::same_as<std::expected<T, std::string>>;
+    };
+
+    template <typename T>
+    concept Parsable = ParsableFromStringTemplate<T> || ParsableFromStringStatic<T>;
+
+    using ParseFunction = std::function<std::expected<std::any, std::string>(std::string_view)>;
+
+    template <ParsableFromStringTemplate T>
+    std::expected<std::any, std::string> parse(std::string_view s) {
+        auto result = from_string<T>(s);
+        if (!result) {
+            return std::unexpected(std::move(result).error());
+        }
+        return std::any(std::move(result).value());
+    }
+
+    template <ParsableFromStringStatic T>
+    std::expected<std::any, std::string> parse(std::string_view s) {
+        auto result = T::from_string(s);
+        if (!result) {
+            return std::unexpected(std::move(result).error());
+        }
+        return std::any(std::move(result).value());
     }
 
     class Parser {
     public:
 
-        template <typename T>
+        template <Parsable T>
         Parser& add_required_parameter(const std::string& name) {
             this->parsers[name] = parse<T>;
             this->registered_parameters.insert(name);
             return *this;
         }
 
-        template <typename T>
+        template <Parsable T>
         Parser& add_optional_parameter(const std::string& name, T default_value) {
             ParseFunction f = parse<T>;
             this->parsers[name] = f;
@@ -85,8 +122,7 @@ namespace Args {
                           << "named \"" << parameter_name << '"';
                 std::exit(1);
             }
-            boxed = this->arguments[parameter_name];
-            return std::any_cast<T>(boxed);
+            return std::any_cast<T>(this->arguments[parameter_name]);
         }
 
         std::vector<std::string>
@@ -97,7 +133,7 @@ namespace Args {
 
     private:
         std::expected<void, std::string>
-        attempt_parse(const std::string& parameter_name, const std::string& input);
+        attempt_parse(const std::string& parameter_name, std::string_view input);
 
         std::expected<void, std::vector<std::string>>
         check_for_missing_parameters();
@@ -106,7 +142,7 @@ namespace Args {
         handle_program_argument(std::string_view argument);
 
         std::expected<std::optional<std::string>, std::string>
-        handle_parameter_with_value(const std::string& parameter_name, const std::string& value);
+        handle_parameter_with_value(const std::string& parameter_name, std::string_view value);
 
         std::expected<std::optional<std::string>, std::string>
         handle_flag(const std::string& flag_name);
@@ -115,5 +151,6 @@ namespace Args {
         std::unordered_map<std::string, std::any> arguments;
         std::unordered_set<std::string> registered_flags;
         std::unordered_set<std::string> registered_parameters;
+        std::unordered_set<std::string> set_flags;
     };
 }
