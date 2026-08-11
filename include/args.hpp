@@ -151,6 +151,5 @@ namespace Args {
         std::unordered_map<std::string, std::any> arguments;
         std::unordered_set<std::string> registered_flags;
         std::unordered_set<std::string> registered_parameters;
-        std::unordered_set<std::string> set_flags;
     };
 }
