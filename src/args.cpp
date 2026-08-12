@@ -13,8 +13,8 @@ using std::vector;
 using u8 = std::uint8_t;
 
 namespace Args {
-    Parser& Parser::add_flag_parameter(const std::string& flag_name) {
-        this->parsers[flag_name] = from_string<u8>;
+    Parser& Parser::add_flag_parameter(const std::string& flag_name, string_view description) {
+        this->parameters[flag_name] = ProgramParameter{ parse<u8>, std::string(description) };
         // Bools are stored as 8-bit unsigned integers, given that the bool type doesn't implement
         // std::from_chars
         this->arguments[flag_name] = (u8)0;
@@ -153,12 +153,13 @@ namespace Args {
 
     expected<void, string>
     Parser::attempt_parse(const string& parameter_name, string_view input) {
-        if (!this->parsers.contains(parameter_name)) {
+        if (!this->parameters.contains(parameter_name)) {
             return unexpected(
                 std::format("Found unexpected parameter: --{}", parameter_name)
             );
         }
-        ParseFunction f = this->parsers[parameter_name];
+        const auto& parameter = parameters[parameter_name];
+        ParseFunction f = parameter.parser;
         auto result = f(input);
         if (!result) {
             const auto error_message = std::move(result).error();
@@ -173,7 +174,7 @@ namespace Args {
     expected<void, vector<string>>
     Parser::check_for_missing_parameters() {
         vector<string> errors;
-        for (const auto& key : std::views::keys(this->parsers)) {
+        for (const auto& key : std::views::keys(this->parameters)) {
             if (!this->arguments.contains(key)) {
                 errors.push_back(
                     std::format("Parameter --{} is required but was not provided", key)
