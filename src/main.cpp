@@ -32,16 +32,16 @@ int main(int argc, char** argv) {
     const auto positional_args = parser.parse_program_arguments(argc, argv);
 
     auto age = parser.get<int>("age");
-    std::cout << "age: " << age << std::endl;
+    std::cout << "age: " << age << " provided? " << parser.was_parameter_provided("age") << std::endl;
 
     auto name = parser.get<std::string>("name");
-    std::cout << "name: " << name << std::endl;
+    std::cout << "name: " << name << " provided? " << parser.was_parameter_provided("name") << std::endl;
 
     auto f = parser.get<double>("coolness-factor");
-    std::cout << "coolness-factor: " << f << std::endl;
+    std::cout << "coolness-factor: " << f << " provided? " << parser.was_parameter_provided("coolness-factor") << std::endl;
 
     auto banana = parser.get<Banana>("banana");
-    std::cout << "banana: " << banana << std::endl;
+    std::cout << "banana: " << banana << " provided? " << parser.was_parameter_provided("banana") << std::endl;
 
     bool super_cool = parser.is_flag_set("super-cool");
     std::cout << "super-cool: " << super_cool << std::endl;

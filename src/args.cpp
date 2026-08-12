@@ -14,16 +14,17 @@ using u8 = std::uint8_t;
 
 namespace Args {
     Parser& Parser::add_flag_parameter(const std::string& flag_name, string_view description) {
-        this->parameters[flag_name] = ProgramParameter{ parse<u8>, std::string(description) };
-        // Bools are stored as 8-bit unsigned integers, given that the bool type doesn't implement
-        // std::from_chars
-        this->arguments[flag_name] = (u8)0;
-        this->registered_flags.insert(flag_name);
+        // Flag parameters don't have a parser and don't hold a value; instead, "was_provided"
+        // defaults to false and gets set to true if the flag was provided
+        this->parameters[flag_name] = ProgramParameter {
+            nullptr, std::any(), std::string(description), true, false
+        };
         return *this;
     }
 
     vector<string>
     Parser::parse_program_arguments(int argc, char** argv) {
+        program_name = argv[0];
         const auto arguments = vector<string_view>(argv + 1, argv + argc);
         auto result = parse_arguments(arguments);
         if (!result) {
@@ -73,11 +74,11 @@ namespace Args {
 
     expected<optional<string>, string>
     Parser::handle_parameter_token_with_value(const string& parameter_name, string_view value) {
-        if (registered_flags.contains(parameter_name)) {
+        if (is_flag_registered(parameter_name)) {
             return unexpected(
                 std::format("--{} is a flag and does not take a value", parameter_name)
             );
-        } else if (!registered_parameters.contains(parameter_name)) {
+        } else if (!is_parameter_registered(parameter_name)) {
             return unexpected(
                 std::format("Found unknown parameter: --{}", parameter_name)
             );
@@ -91,16 +92,16 @@ namespace Args {
 
     expected<optional<string>, string>
     Parser::handle_flag_token(const string& flag_name) {
-        if (registered_parameters.contains(flag_name)) {
+        if (is_parameter_registered(flag_name)) {
             return unexpected(std::format(
                 "Parameter --{} takes a value but no value was provided", flag_name
             ));
-        } else if (!registered_flags.contains(flag_name)) {
+        } else if (!is_flag_registered(flag_name)) {
             return unexpected(std::format(
                 "Found unknown flag: --{}", flag_name
             ));
         }
-        arguments[flag_name] = (u8)1;
+        parameters[flag_name].was_provided = true;
         return {};
     }
 
@@ -158,7 +159,7 @@ namespace Args {
                 std::format("Found unexpected parameter: --{}", parameter_name)
             );
         }
-        const auto& parameter = parameters[parameter_name];
+        auto& parameter = parameters[parameter_name];
         ParseFunction f = parameter.parser;
         auto result = f(input);
         if (!result) {
@@ -167,7 +168,8 @@ namespace Args {
                 std::format("For parameter --{}: {}", parameter_name, error_message)
             );
         }
-        this->arguments[parameter_name] = std::move(result).value();
+        parameter.value = std::move(result).value();
+        parameter.was_provided = true;
         return {};
     }
 
@@ -175,7 +177,8 @@ namespace Args {
     Parser::check_for_missing_parameters() {
         vector<string> errors;
         for (const auto& key : std::views::keys(this->parameters)) {
-            if (!this->arguments.contains(key)) {
+            auto& parameter = parameters[key];
+            if (parameter.is_required && !parameter.was_provided) {
                 errors.push_back(
                     std::format("Parameter --{} is required but was not provided", key)
                 );
@@ -188,11 +191,46 @@ namespace Args {
     }
 
     bool Parser::is_flag_set(const string& flag_name) {
-        if (!registered_flags.contains(flag_name)) {
+        if (is_parameter_registered(flag_name)) {
+            std::cerr << "Developer error: Parameter \"" << flag_name << "\" is not a flag "
+                      << "parameter but was accessed as one. Use get instead";
+            std::exit(1);
+        } else if (!is_flag_registered(flag_name)) {
             std::cerr << "Developer error: This parser is not configured with a flag named \""
                       << flag_name << '"' << std::endl;
             std::exit(1);
         }
+        return was_parameter_provided(flag_name);
+    }
+
+    bool Parser::does_parameter_have_value(const string& parameter_name) {
+        return parameters[parameter_name].value.has_value();
+    }
+
+    bool Parser::is_parameter_registered(const string& parameter_name) {
+        if (!parameters.contains(parameter_name)) {
+            return false;
+        }
+        const ProgramParameter& param = parameters[parameter_name];
+        return !param.is_flag;
+    }
+
+    bool Parser::is_flag_registered(const string& flag_name) {
+        if (!parameters.contains(flag_name)) {
+            return false;
+        }
+        return parameters[flag_name].is_flag;
+    }
+
+    bool Parser::was_parameter_provided(const string& parameter_name) {
+        if (!parameters.contains(parameter_name)) {
+            std::cerr << "Developer error: This parser is not configured to accept a parameter or "
+                         "flag named \"" << parameter_name << '"';
+            std::exit(1);
+        }
+        return parameters[parameter_name].was_provided;
+    }
+
         return get<u8>(flag_name) != 0;
     }
 }

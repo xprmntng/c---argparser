@@ -164,9 +164,16 @@ namespace Args {
      */
     using ParseFunction = std::function<std::expected<std::any, std::string>(std::string_view)>;
 
+    /**
+     * @brief Struct that holds the state for a single program parameter
+     */
     struct ProgramParameter {
         ParseFunction parser;
+        std::any value;
         std::string description;
+        bool is_flag;
+        bool is_required;
+        bool was_provided = false;
     };
 
     /**
@@ -181,17 +188,18 @@ namespace Args {
 
         template <Parsable T>
         Parser& add_required_parameter(const std::string& name, std::string_view description) {
-            this->parameters[name] = ProgramParameter { parse<T>, std::string(description) };
-            this->registered_parameters.insert(name);
+            this->parameters[name] = ProgramParameter {
+                parse<T>, std::any(), std::string(description), false, true
+            };
             return *this;
         }
 
         template <Parsable T>
         Parser& add_optional_parameter(const std::string& name, T default_value,
                                        std::string_view description) {
-            this->parameters[name] = ProgramParameter { parse<T>, std::string(description) };
-            this->arguments[name] = std::any(default_value);
-            this->registered_parameters.insert(name);
+            this->parameters[name] = ProgramParameter {
+                parse<T>, std::any(default_value), std::string(description), false, false
+            };
             return *this;
         }
 
@@ -202,12 +210,16 @@ namespace Args {
         template <typename T>
         T get(const std::string& parameter_name) {
             std::any boxed;
-            if (!this->arguments.contains(parameter_name)) {
-                std::cerr << "Developer error: Program is not configured to accept a parameter "
-                          << "named \"" << parameter_name << '"';
+            if (is_flag_registered(parameter_name)) {
+                std::cerr << "Developer error: " << parameter_name << " is a non-flag program "
+                          << "parameter but was accessed as a flag. Use is_flag_set instead.";
+                std::exit(1);
+            } else if (!is_parameter_registered(parameter_name)) {
+                std::cerr << "Developer error: Program is not configured with a parameter named"
+                          << parameter_name << '"';
                 std::exit(1);
             }
-            return std::any_cast<T>(this->arguments[parameter_name]);
+            return std::any_cast<T>(parameters[parameter_name].value);
         }
 
         std::vector<std::string>
@@ -215,6 +227,8 @@ namespace Args {
 
         std::expected<std::vector<std::string>, std::vector<std::string>>
         parse_arguments(const std::vector<std::string_view>& arguments);
+
+        bool was_parameter_provided(const std::string& parameter_name);
 
     private:
         std::expected<void, std::string>
@@ -232,16 +246,16 @@ namespace Args {
         std::expected<std::optional<std::string>, std::string>
         handle_flag_token(const std::string& flag_name);
 
-        // TODO: Implement me
-        std::expected<void, std::string>
-        is_parameter_or_flag_already_registered(const std::string& parameter_name);
+        bool does_parameter_have_value(const std::string& parameter_name);
+
+        bool is_parameter_registered(const std::string& parameter_name);
+
+        bool is_flag_registered(const std::string& flag_name);
 
         // TODO: Implement me
         void print_help();
 
         std::unordered_map<std::string, ProgramParameter> parameters;
-        std::unordered_map<std::string, std::any> arguments;
-        std::unordered_set<std::string> registered_flags;
-        std::unordered_set<std::string> registered_parameters;
+        std::string_view program_name;
     };
 }
