@@ -82,6 +82,13 @@ namespace Args {
                        || TypeImplementsFromString<T>
                        || std::constructible_from<T, std::string_view>;
 
+    /**
+     * @brief 
+     * 
+     * @tparam T 
+     * @param s 
+     * @return requires 
+     */
     template <typename T>
     requires std::constructible_from<T, std::string_view>
     std::expected<T, std::string> from_string(std::string_view s) {
@@ -193,6 +200,14 @@ namespace Args {
     class Parser {
     public:
 
+        /**
+         * @brief 
+         * 
+         * @tparam T 
+         * @param name 
+         * @param description 
+         * @return Parser& 
+         */
         template <Parsable T>
         Parser& add_required_parameter(const std::string& name, std::string_view description) {
             this->parameters[name] = ProgramParameter {
@@ -201,6 +216,15 @@ namespace Args {
             return *this;
         }
 
+        /**
+         * @brief 
+         * 
+         * @tparam T 
+         * @param name 
+         * @param default_value 
+         * @param description 
+         * @return Parser& 
+         */
         template <Parsable T>
         Parser& add_optional_parameter(const std::string& name, T default_value,
                                        std::string_view description) {
@@ -211,10 +235,31 @@ namespace Args {
             return *this;
         }
 
+        /**
+         * @brief 
+         * 
+         * @param flag_name 
+         * @param description 
+         * @return Parser& 
+         */
         Parser& add_flag_parameter(const std::string& flag_name, std::string_view description);
 
+        /**
+         * @brief 
+         * 
+         * @param flag_name 
+         * @return true 
+         * @return false 
+         */
         bool is_flag_set(const std::string& flag_name);
 
+        /**
+         * @brief 
+         * 
+         * @tparam T 
+         * @param parameter_name 
+         * @return T 
+         */
         template <typename T>
         T get(const std::string& parameter_name) {
             std::any boxed;
@@ -230,39 +275,118 @@ namespace Args {
             return std::any_cast<T>(parameters[parameter_name].value);
         }
 
+        /**
+         * @brief 
+         * 
+         * @param argc 
+         * @param argv 
+         * @return std::vector<std::string> 
+         */
         std::vector<std::string>
         parse_program_arguments(int argc, char** argv);
 
+        /**
+         * @brief 
+         * 
+         * @param arguments 
+         * @return std::expected<std::vector<std::string>, std::vector<std::string>> 
+         */
         std::expected<std::vector<std::string>, std::vector<std::string>>
         parse_arguments(const std::vector<std::string_view>& arguments);
 
+        /**
+         * @brief 
+         * 
+         * @param parameter_name 
+         * @return true 
+         * @return false 
+         */
         bool was_parameter_provided(const std::string& parameter_name);
 
     private:
+        /**
+         * @brief 
+         * 
+         * @param parameter_name 
+         * @param input 
+         * @return std::expected<void, std::string> 
+         */
         std::expected<void, std::string>
         attempt_parse(const std::string& parameter_name, std::string_view input);
 
+        /**
+         * @brief 
+         * 
+         * @return std::expected<void, std::vector<std::string>> 
+         */
         std::expected<void, std::vector<std::string>>
         check_for_missing_parameters();
 
+        /**
+         * @brief 
+         * 
+         * @param argument 
+         * @return std::expected<std::optional<std::string>, std::string> 
+         */
         std::expected<std::optional<std::string>, std::string>
         handle_program_argument(std::string_view argument);
 
+        /**
+         * @brief 
+         * 
+         * @param parameter_name 
+         * @param value 
+         * @return std::expected<std::optional<std::string>, std::string> 
+         */
         std::expected<std::optional<std::string>, std::string>
         handle_parameter_token_with_value(const std::string& parameter_name, std::string_view value);
 
+        /**
+         * @brief 
+         * 
+         * @param flag_name 
+         * @return std::expected<std::optional<std::string>, std::string> 
+         */
         std::expected<std::optional<std::string>, std::string>
         handle_flag_token(const std::string& flag_name);
 
+        /**
+         * @brief 
+         * 
+         * @param parameter_name 
+         * @return true 
+         * @return false 
+         */
         bool does_parameter_have_value(const std::string& parameter_name);
 
+        /**
+         * @brief 
+         * 
+         * @param parameter_name 
+         * @return true 
+         * @return false 
+         */
         bool is_parameter_registered(const std::string& parameter_name);
 
+        /**
+         * @brief 
+         * 
+         * @param flag_name 
+         * @return true 
+         * @return false 
+         */
         bool is_flag_registered(const std::string& flag_name);
 
+        /**
+         * @brief 
+         * 
+         */
         void print_help();
 
+        /// @brief 
         std::unordered_map<std::string, ProgramParameter> parameters;
+
+        /// @brief 
         std::string_view program_name = "";
     };
 }
