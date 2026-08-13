@@ -17,7 +17,7 @@ namespace Args {
         // Flag parameters don't have a parser and don't hold a value; instead, "was_provided"
         // defaults to false and gets set to true if the flag was provided
         this->parameters[flag_name] = ProgramParameter {
-            nullptr, std::any(), std::string(description), true, false
+            nullptr, std::any(), std::string(description), true, false, ""
         };
         return *this;
     }
@@ -127,6 +127,10 @@ namespace Args {
         vector<string> positional_arguments;
         vector<string> errors;
         for (const auto& arg : arguments) {
+            if (arg == "--help" || arg.starts_with("--help=")) {
+                print_help();
+                std::exit(1);
+            }
             auto result = handle_program_argument(arg);
             if (!result) {
                 errors.push_back(std::move(result.error()));
@@ -231,6 +235,48 @@ namespace Args {
         return parameters[parameter_name].was_provided;
     }
 
-        return get<u8>(flag_name) != 0;
+    void Parser::print_help() {
+        vector<std::reference_wrapper<const string>> flags;
+        vector<std::reference_wrapper<const string>> optional_params;
+        vector<std::reference_wrapper<const string>> required_params;
+        for (const auto& parameter_name : std::views::keys(parameters)) {
+            auto& parameter = parameters[parameter_name];
+            if (parameter.is_flag) {
+                flags.push_back(std::ref(parameter_name));
+            } else if (parameter.is_required) {
+                required_params.push_back(std::ref(parameter_name));
+            } else {
+                optional_params.push_back(std::ref(parameter_name));
+            }
+        }
+        std::cout << "Usage: " << program_name;
+        for (const string& name : required_params) {
+                const auto& param = parameters[name];
+            std::cout << " --" << name << "=<" << param.type_name << '>';
+        }
+        std::cout << "\n\n";
+        if (required_params.size() > 0) {
+            std::cout << "Required Parameters:\n\n";
+            for (const string& name : required_params) {
+                const auto& param = parameters[name];
+                std::cout << "  --" << name << "=<" << param.type_name << ">: " << param.description
+                          << "\n\n";
+            }
+        }
+        if (optional_params.size() > 0) {
+            std::cout << "Optional Parameters:\n\n";
+            for (const string& name : optional_params) {
+                const auto& param = parameters[name];
+                std::cout << "  --" << name << "=<" << param.type_name << ">: " << param.description
+                          << "\n\n";
+            }
+        }
+        if (flags.size() > 0) {
+            std::cout << "Flags:\n\n";
+            for (const string& name : flags) {
+                const auto& param = parameters[name];
+                std::cout << "  --" << name << ": " << param.description << "\n\n";
+            }
+        }
     }
 }

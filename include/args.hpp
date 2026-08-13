@@ -8,6 +8,7 @@
 #include <ranges>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -25,17 +26,22 @@ namespace Args {
      */
     template <typename T>
     std::string get_type_name() {
-        const char* mangled_name = typeid(T).name();
-        int status = 0;
-        // abi::__cxa_demangle allocates a raw C-string using std::malloc
-        char* demangled = abi::__cxa_demangle(mangled_name, nullptr, nullptr, &status);
+        // std::string gets a really ugly demangled type name; override that with a check here
+        if constexpr (std::is_same_v<T, std::string>) {
+            return "string";
+        } else {
+            const char* mangled_name = typeid(T).name();
+            int status = 0;
+            // abi::__cxa_demangle allocates a raw C-string using std::malloc
+            char* demangled = abi::__cxa_demangle(mangled_name, nullptr, nullptr, &status);
 
-        if (status == 0 && demangled != nullptr) {
-            // Wrap in a unique_ptr to prevent a dynamic memory leak
-            std::unique_ptr<char, void(*)(void*)> cleanup(demangled, std::free);
-            return std::string(demangled);
+            if (status == 0 && demangled != nullptr) {
+                // Wrap in a unique_ptr to prevent a dynamic memory leak
+                std::unique_ptr<char, void(*)(void*)> cleanup(demangled, std::free);
+                return std::string(demangled);
+            }
+            return mangled_name;
         }
-        return mangled_name;
     }
 
     /**
@@ -173,6 +179,7 @@ namespace Args {
         std::string description;
         bool is_flag;
         bool is_required;
+        std::string type_name;
         bool was_provided = false;
     };
 
@@ -189,7 +196,7 @@ namespace Args {
         template <Parsable T>
         Parser& add_required_parameter(const std::string& name, std::string_view description) {
             this->parameters[name] = ProgramParameter {
-                parse<T>, std::any(), std::string(description), false, true
+                parse<T>, std::any(), std::string(description), false, true, get_type_name<T>()
             };
             return *this;
         }
@@ -198,7 +205,8 @@ namespace Args {
         Parser& add_optional_parameter(const std::string& name, T default_value,
                                        std::string_view description) {
             this->parameters[name] = ProgramParameter {
-                parse<T>, std::any(default_value), std::string(description), false, false
+                parse<T>, std::any(default_value), std::string(description), false, false,
+                get_type_name<T>()
             };
             return *this;
         }
@@ -252,10 +260,9 @@ namespace Args {
 
         bool is_flag_registered(const std::string& flag_name);
 
-        // TODO: Implement me
         void print_help();
 
         std::unordered_map<std::string, ProgramParameter> parameters;
-        std::string_view program_name;
+        std::string_view program_name = "";
     };
 }
