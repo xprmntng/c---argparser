@@ -51,9 +51,11 @@ all: ./build/$(TARGET) ./lib/libargs.a
 	mkdir --parents `dirname $@`
 	$(CXX_COMPILER) $(CXX_COMPILER_FLAGS) -c $< -o $@
 
+
 # `make clean` clears out the `build` directory
 clean:
 	rm -rf ./build/*
+
 
 # Track dependency (.d) files, which will catch if a header file changes
 -include $(CXX_DEPENDENCIES)
