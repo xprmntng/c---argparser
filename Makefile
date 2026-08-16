@@ -46,13 +46,13 @@ CXX_DEPENDENCIES := $(CXX_OBJECTS:%.o=%.d)
 #---------------------------------------------------------------------------------------------------
 
 # Rule to build all targets defined by this Makefile
-all: ./build/$(TARGET) ./lib/lib$(TARGET).a
+all: ./bin/$(TARGET) ./lib/lib$(TARGET).a
 
 
 # Define how we build the code into an executable
-./build/$(TARGET): $(CXX_OBJECTS)
+./bin/$(TARGET): $(CXX_OBJECTS)
 	mkdir --parents $(@D)
-	$(CXX_COMPILER) $(CXX_LINKER_FLAGS) -o ./build/$(TARGET) $(CXX_OBJECTS)
+	$(CXX_COMPILER) $(CXX_LINKER_FLAGS) -o ./bin/$(TARGET) $(CXX_OBJECTS)
 
 
 # Define how we build the code into a static library (libTARGET.a)
@@ -69,7 +69,7 @@ all: ./build/$(TARGET) ./lib/lib$(TARGET).a
 
 # `make clean` clears out the `build` directory
 clean:
-	rm -rf ./build/*
+	rm -rf build/* bin/* lib/*
 
 
 # Track dependency (.d) files, which will catch if a header file changes
