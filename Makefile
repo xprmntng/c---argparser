@@ -1,3 +1,7 @@
+#---------------------------------------------------------------------------------------------------
+#                                             VARIABLES
+#---------------------------------------------------------------------------------------------------
+
 # Define the output executable name
 TARGET = argparser
 
@@ -19,7 +23,7 @@ CXX_COMPILER = g++
 CXX_COMPILER_FLAGS = -I$(INCLUDE_DIRECTORY) -std=c++23 -Wall -Wextra -MMD -MP -g
 
 # Define C++ linker flags
-CXX_LINKER_FLAGS = 
+CXX_LINKER_FLAGS =
 
 # Create a list of `.cpp` input files found within `./src` by doing a recursive search
 CXX_SOURCES := $(shell find ./src -type f -iname \*.cpp)
@@ -28,22 +32,33 @@ CXX_SOURCES := $(shell find ./src -type f -iname \*.cpp)
 # replacing `./src/` prefix and `.cpp` suffix with `./build/` prefix, `.o` suffix
 CXX_OBJECTS := $(CXX_SOURCES:./src/%.cpp=./build/%.o)
 
+# Use the above list to create a list of .o files needed to build the project into a static library
+# with .a extension by removing `main.o` from the original list
 CXX_OBJECTS_NO_MAIN := $(filter-out main.o,$(CXX_OBJECTS))
 
-# Turn the list of paths to .o files into a list of paths to dependency files (.d)
+# Turn the list of paths to .o files into a list of paths to dependency files (.d) which will help
+# Make determine whether any header files changed
 CXX_DEPENDENCIES := $(CXX_OBJECTS:%.o=%.d)
 
-# Rule to build all targets defined by this Makefile
-all: ./build/$(TARGET) ./lib/libargs.a
 
-# Define how we build our target
+#---------------------------------------------------------------------------------------------------
+#                                              RULES
+#---------------------------------------------------------------------------------------------------
+
+# Rule to build all targets defined by this Makefile
+all: ./build/$(TARGET) ./lib/lib$(TARGET).a
+
+
+# Define how we build the code into an executable
 ./build/$(TARGET): $(CXX_OBJECTS)
-	mkdir --parents ./build
+	mkdir --parents $(@D)
 	$(CXX_COMPILER) $(CXX_LINKER_FLAGS) -o ./build/$(TARGET) $(CXX_OBJECTS)
 
-./lib/libargs.a: $(CXX_OBJECTS_NO_MAIN)
+
+# Define how we build the code into a static library (libTARGET.a)
+./lib/lib$(TARGET).a: $(CXX_OBJECTS_NO_MAIN)
 	mkdir --parents $(@D)
-	ar crs ./lib/libargs.a $(CXX_OBJECTS_NO_MAIN)
+	ar crs ./lib/lib$(TARGET).a $(CXX_OBJECTS_NO_MAIN)
 
 
 # Define how we compile .cpp files into .o files
