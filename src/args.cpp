@@ -37,21 +37,34 @@ namespace Args {
         return std::move(result).value();
     }
 
+    /// @brief Represent a token that looks like a positional argument (no leading `--`)
     struct PositionalArgument {
         string value;
     };
 
+    /// @brief Represent a token that looks like a flag parameter (leading `--` with no value)
     struct Flag {
         string name;
     };
 
+    /// @brief Represent a token that looks like a parameter with a value (`--param=value`)
     struct ParameterWithValue {
         string name;
         string value;
     };
 
+    /// @brief Define a type that can hold any of the above three types
     using Token = std::variant<PositionalArgument, Flag, ParameterWithValue>;
 
+    /**
+     * @brief Given a raw program argument, extract a `Token` from it based on what symbols the
+     * argument contains
+     * 
+     * @param argument The raw program argument passed by the end user
+     * @return Token A `PositionalArgument` if the argument did not have a leading `--`, a `Flag` if
+     * the argument had a leading `--` but did not contain an equal sign, or a `ParameterWithValue`
+     * if the argument both had a leading `--` and an equal sign
+     */
     Token extract_token_from_program_argument(string_view argument) {
         if (argument.starts_with("--")) {
             const auto dashes_removed = argument.substr(2);
