@@ -312,7 +312,7 @@ class Parser {
    * `--`. Any argument without a leading `--` is considered a positional argument and collected by
    * the argument parser. Named parameters with arguments provided by the end user are parsed into
    * the type assigned to the parameter by the developer. If valid input was provided, the value is
-   * stored internally within the `Parser` and can be retreived using the `get` method
+   * stored internally within the `Parser` and can be retrieved using the `get` method
    * 
    * This method is intended to be called directly from a `main` function, taking in a program's
    * `argc` and `argv` arguments. If parsing the program arguments fails for any reason, this method

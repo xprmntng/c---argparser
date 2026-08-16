@@ -1,5 +1,5 @@
 # Define the output executable name
-TARGET = argparse
+TARGET = argparser
 
 # Define where the build system should look for header files
 INCLUDE_DIRECTORY = ./include
@@ -9,7 +9,7 @@ CXX_COMPILER = g++
 
 # Define C++ compiler flags. Here's what they do:
 # -std: Defines which C or C++ standard to target
-# -Wall: Turns on most critical and commonly-encounted warnings
+# -Wall: Turns on most critical and commonly-encountered warnings
 # -Wextra: Turns on additional useful warnings not covered by -Wall
 # -MMD: Creates dependency files with `.d` extension that contain a list of
 #       your C++ source file's header file dependencies, causing your source
