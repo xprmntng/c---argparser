@@ -13,12 +13,13 @@ using std::vector;
 using u8 = std::uint8_t;
 
 namespace Args {
-Parser &Parser::add_flag_parameter(const std::string &flag_name, string_view description) {
-    if (is_parameter_registered(flag_name) || is_flag_registered(flag_name)) {
-      std::cerr << "Developer error: Parameter \"" << flag_name << "\" was defined multiple times which "
-                << "is illegal";
-      std::exit(1);
-    }
+Parser& Parser::add_flag_parameter(const std::string& flag_name, string_view description) {
+  if (is_parameter_registered(flag_name) || is_flag_registered(flag_name)) {
+    std::cerr << "Developer error: Parameter \"" << flag_name
+              << "\" was defined multiple times which "
+              << "is illegal";
+    std::exit(1);
+  }
   // Flag parameters don't have a parser and don't hold a value; instead,
   // "was_provided" defaults to false and gets set to true if the flag was
   // provided
@@ -27,13 +28,13 @@ Parser &Parser::add_flag_parameter(const std::string &flag_name, string_view des
   return *this;
 }
 
-vector<string> Parser::parse_program_arguments(int argc, char **argv) {
+vector<string> Parser::parse_program_arguments(int argc, char** argv) {
   program_name = argv[0];
   const auto arguments = vector<string_view>(argv + 1, argv + argc);
   auto result = parse_arguments(arguments);
   if (!result) {
     const auto errors = std::move(result).error();
-    for (const auto &error : errors) {
+    for (const auto& error : errors) {
       std::cerr << error << std::endl;
     }
     std::exit(1);
@@ -87,8 +88,8 @@ Token extract_token_from_program_argument(string_view argument) {
   }
 }
 
-expected<optional<string>, string>
-Parser::handle_parameter_token_with_value(const string &parameter_name, string_view value) {
+expected<optional<string>, string> Parser::handle_parameter_token_with_value(
+    const string& parameter_name, string_view value) {
   if (is_flag_registered(parameter_name)) {
     return unexpected(std::format("--{} is a flag and does not take a value", parameter_name));
   } else if (!is_parameter_registered(parameter_name)) {
@@ -101,7 +102,7 @@ Parser::handle_parameter_token_with_value(const string &parameter_name, string_v
   return {};
 }
 
-expected<optional<string>, string> Parser::handle_flag_token(const string &flag_name) {
+expected<optional<string>, string> Parser::handle_flag_token(const string& flag_name) {
   if (is_parameter_registered(flag_name)) {
     return unexpected(
         std::format("Parameter --{} takes a value but no value was provided", flag_name));
@@ -115,22 +116,22 @@ expected<optional<string>, string> Parser::handle_flag_token(const string &flag_
 expected<optional<string>, string> Parser::handle_program_argument(string_view argument) {
   Token token = extract_token_from_program_argument(argument);
   const auto result =
-      std::visit(match{[this](const ParameterWithValue &pv) mutable {
+      std::visit(match{[this](const ParameterWithValue& pv) mutable {
                          return handle_parameter_token_with_value(pv.name, pv.value);
                        },
-                       [this](const Flag &flag) mutable { return handle_flag_token(flag.name); },
-                       [](PositionalArgument &pa) -> expected<optional<string>, string> {
+                       [this](const Flag& flag) mutable { return handle_flag_token(flag.name); },
+                       [](PositionalArgument& pa) -> expected<optional<string>, string> {
                          return std::move(pa.value);
                        }},
                  token);
   return result;
 }
 
-expected<vector<string>, vector<string>>
-Parser::parse_arguments(const vector<string_view> &arguments) {
+expected<vector<string>, vector<string>> Parser::parse_arguments(
+    const vector<string_view>& arguments) {
   vector<string> positional_arguments;
   vector<string> errors;
-  for (const auto &arg : arguments) {
+  for (const auto& arg : arguments) {
     if (arg == "--help" || arg.starts_with("--help=")) {
       print_help();
       std::exit(1);
@@ -159,11 +160,11 @@ Parser::parse_arguments(const vector<string_view> &arguments) {
   return positional_arguments;
 }
 
-expected<void, string> Parser::attempt_parse(const string &parameter_name, string_view input) {
+expected<void, string> Parser::attempt_parse(const string& parameter_name, string_view input) {
   if (!this->parameters.contains(parameter_name)) {
     return unexpected(std::format("Found unexpected parameter: --{}", parameter_name));
   }
-  auto &parameter = parameters[parameter_name];
+  auto& parameter = parameters[parameter_name];
   ParseFunction f = parameter.parser;
   auto result = f(input);
   if (!result) {
@@ -177,8 +178,8 @@ expected<void, string> Parser::attempt_parse(const string &parameter_name, strin
 
 expected<void, vector<string>> Parser::check_for_missing_parameters() {
   vector<string> errors;
-  for (const auto &key : std::views::keys(this->parameters)) {
-    auto &parameter = parameters[key];
+  for (const auto& key : std::views::keys(this->parameters)) {
+    auto& parameter = parameters[key];
     if (parameter.is_required && !parameter.was_provided) {
       errors.push_back(std::format("Parameter --{} is required but was not provided", key));
     }
@@ -189,7 +190,7 @@ expected<void, vector<string>> Parser::check_for_missing_parameters() {
   return {};
 }
 
-bool Parser::is_flag_set(const string &flag_name) {
+bool Parser::is_flag_set(const string& flag_name) {
   if (is_parameter_registered(flag_name)) {
     std::cerr << "Developer error: Parameter \"" << flag_name << "\" is not a flag "
               << "parameter but was accessed as one. Use get instead";
@@ -202,26 +203,26 @@ bool Parser::is_flag_set(const string &flag_name) {
   return was_parameter_provided(flag_name);
 }
 
-bool Parser::does_parameter_have_value(const string &parameter_name) {
+bool Parser::does_parameter_have_value(const string& parameter_name) {
   return parameters[parameter_name].value.has_value();
 }
 
-bool Parser::is_parameter_registered(const string &parameter_name) {
+bool Parser::is_parameter_registered(const string& parameter_name) {
   if (!parameters.contains(parameter_name)) {
     return false;
   }
-  const ProgramParameter &param = parameters[parameter_name];
+  const ProgramParameter& param = parameters[parameter_name];
   return !param.is_flag;
 }
 
-bool Parser::is_flag_registered(const string &flag_name) {
+bool Parser::is_flag_registered(const string& flag_name) {
   if (!parameters.contains(flag_name)) {
     return false;
   }
   return parameters[flag_name].is_flag;
 }
 
-bool Parser::was_parameter_provided(const string &parameter_name) {
+bool Parser::was_parameter_provided(const string& parameter_name) {
   if (!parameters.contains(parameter_name)) {
     std::cerr << "Developer error: This parser is not configured to accept a "
                  "parameter or "
@@ -236,8 +237,8 @@ void Parser::print_help() {
   vector<std::reference_wrapper<const string>> flags;
   vector<std::reference_wrapper<const string>> optional_params;
   vector<std::reference_wrapper<const string>> required_params;
-  for (const auto &parameter_name : std::views::keys(parameters)) {
-    auto &parameter = parameters[parameter_name];
+  for (const auto& parameter_name : std::views::keys(parameters)) {
+    auto& parameter = parameters[parameter_name];
     if (parameter.is_flag) {
       flags.push_back(std::ref(parameter_name));
     } else if (parameter.is_required) {
@@ -247,33 +248,33 @@ void Parser::print_help() {
     }
   }
   std::cout << "Usage: " << program_name;
-  for (const string &name : required_params) {
-    const auto &param = parameters[name];
+  for (const string& name : required_params) {
+    const auto& param = parameters[name];
     std::cout << " --" << name << "=<" << param.type_name << '>';
   }
   std::cout << "\n\n";
   if (required_params.size() > 0) {
     std::cout << "Required Parameters:\n\n";
-    for (const string &name : required_params) {
-      const auto &param = parameters[name];
+    for (const string& name : required_params) {
+      const auto& param = parameters[name];
       std::cout << "  --" << name << "=<" << param.type_name << ">: " << param.description
                 << "\n\n";
     }
   }
   if (optional_params.size() > 0) {
     std::cout << "Optional Parameters:\n\n";
-    for (const string &name : optional_params) {
-      const auto &param = parameters[name];
+    for (const string& name : optional_params) {
+      const auto& param = parameters[name];
       std::cout << "  --" << name << "=<" << param.type_name << ">: " << param.description
                 << "\n\n";
     }
   }
   if (flags.size() > 0) {
     std::cout << "Flags:\n\n";
-    for (const string &name : flags) {
-      const auto &param = parameters[name];
+    for (const string& name : flags) {
+      const auto& param = parameters[name];
       std::cout << "  --" << name << ": " << param.description << "\n\n";
     }
   }
 }
-} // namespace Args
+}  // namespace Args

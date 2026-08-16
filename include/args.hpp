@@ -21,8 +21,8 @@ namespace Args {
  * @brief Get the name of a type
  *
  * @tparam T The type whose name should be retrieved
- * @return std::string A string containing the demangled name of the type if
- * demangling was successful, otherwise one containing the mangled name
+ * @return std::string A string containing the demangled name of the type if demangling was
+ * successful, otherwise one containing the mangled name
  */
 template <typename T>
 std::string get_type_name() {
@@ -34,8 +34,7 @@ std::string get_type_name() {
     const char* mangled_name = typeid(T).name();
     int status = 0;
     // abi::__cxa_demangle allocates a raw C-string using std::malloc
-    char* demangled =
-        abi::__cxa_demangle(mangled_name, nullptr, nullptr, &status);
+    char* demangled = abi::__cxa_demangle(mangled_name, nullptr, nullptr, &status);
 
     if (status == 0 && demangled != nullptr) {
       // Wrap in a unique_ptr to prevent a dynamic memory leak
@@ -47,18 +46,15 @@ std::string get_type_name() {
 }
 
 /**
- * @brief Defines a concept which identifies types who can be created using the
- * STL function `std::from_chars`
+ * @brief Defines a concept which identifies types who can be created using the STL function
+ * `std::from_chars`
  *
  * @tparam T The type to be assessed
  */
 template <typename T>
-concept ImplementsFromChars =
-    requires(const char* start, const char* end, T& out) {
-      {
-        std::from_chars(start, end, out)
-      } -> std::same_as<std::from_chars_result>;
-    };
+concept ImplementsFromChars = requires(const char* start, const char* end, T& out) {
+  { std::from_chars(start, end, out) } -> std::same_as<std::from_chars_result>;
+};
 
 /**
  * @brief Defines a concept which identifies types that have a static member
@@ -95,7 +91,7 @@ concept Parsable = ImplementsFromChars<T> || TypeImplementsFromString<T> ||
  *
  * @tparam T The type whose `T(std::string_view)` constructor  should be called
  * @param s The string from which to attempt to construct a `T`
- * @return A `T` object wrapped in a `std::expected` upon success, otherwise a `std::string` 
+ * @return A `T` object wrapped in a `std::expected` upon success, otherwise a `std::string`
  * containing an error message wrapped in a `std::unexpected`
  */
 template <typename T>
@@ -105,8 +101,7 @@ std::expected<T, std::string> from_string(std::string_view s) {
     return T(s);
   } catch (std::exception& err) {
     return std::unexpected(
-        std::format("A \"{}\" could not be constructed from \"{}\"",
-                    get_type_name<T>(), s));
+        std::format("A \"{}\" could not be constructed from \"{}\"", get_type_name<T>(), s));
   }
 }
 
@@ -131,8 +126,8 @@ std::expected<T, std::string> from_string(std::string_view s) {
   bool value_found = ec == std::errc();
   bool entire_string_consumed = ptr == end;
   if (!value_found || !entire_string_consumed) {
-    return std::unexpected(std::format("\"{}\" could not be converted to {}", s,
-                                       get_type_name<T>()));
+    return std::unexpected(
+        std::format("\"{}\" could not be converted to {}", s, get_type_name<T>()));
   }
   return out;
 }
@@ -150,8 +145,7 @@ std::expected<T, std::string> from_string(std::string_view s) {
  * explaining why parsing failed
  */
 template <typename T>
-  requires ImplementsFromChars<T> ||
-           std::constructible_from<T, std::string_view>
+  requires ImplementsFromChars<T> || std::constructible_from<T, std::string_view>
 std::expected<std::any, std::string> parse(std::string_view s) {
   auto result = from_string<T>(s);
   if (!result) {
@@ -187,8 +181,7 @@ std::expected<std::any, std::string> parse(std::string_view s) {
  * parameter, a `std::string_view`, and return a `std::any` upon success or a
  * `std::string` containing an error message upon failure
  */
-using ParseFunction =
-    std::function<std::expected<std::any, std::string>(std::string_view)>;
+using ParseFunction = std::function<std::expected<std::any, std::string>(std::string_view)>;
 
 /**
  * @brief Struct that holds the state for a single program parameter
@@ -225,16 +218,14 @@ class Parser {
    * @return Parser& A reference to the `Parser` object this method was invoked upon
    */
   template <Parsable T>
-  Parser& add_required_parameter(const std::string& name,
-                                 std::string_view description) {
+  Parser& add_required_parameter(const std::string& name, std::string_view description) {
     if (is_parameter_registered(name) || is_flag_registered(name)) {
       std::cerr << "Developer error: Parameter \"" << name << "\" was defined multiple times which "
                 << "is illegal";
       std::exit(1);
     }
-    this->parameters[name] =
-        ProgramParameter{parse<T>, std::any(), std::string(description),
-                         false,    true,       get_type_name<T>()};
+    this->parameters[name] = ProgramParameter{parse<T>, std::any(), std::string(description),
+                                              false,    true,       get_type_name<T>()};
     return *this;
   }
 
@@ -262,9 +253,9 @@ class Parser {
                 << "is illegal";
       std::exit(1);
     }
-    this->parameters[name] = ProgramParameter{
-        parse<T>, std::any(default_value), std::string(description), false,
-        false,    get_type_name<T>()};
+    this->parameters[name] =
+        ProgramParameter{parse<T>, std::any(default_value), std::string(description), false,
+                         false,    get_type_name<T>()};
     return *this;
   }
 
@@ -277,8 +268,7 @@ class Parser {
    * @param description Text for the help menu that will explain the meaning of the flag to the user
    * @return Parser& A reference to the `Parser` object this method was invoked upon
    */
-  Parser& add_flag_parameter(const std::string& flag_name,
-                             std::string_view description);
+  Parser& add_flag_parameter(const std::string& flag_name, std::string_view description);
 
   /**
    * @brief Determine whether a flag parameter was passed by the end user at the command line
@@ -304,14 +294,12 @@ class Parser {
   T get(const std::string& parameter_name) {
     std::any boxed;
     if (is_flag_registered(parameter_name)) {
-      std::cerr
-          << "Developer error: " << parameter_name << " is a non-flag program "
-          << "parameter but was accessed as a flag. Use is_flag_set instead.";
+      std::cerr << "Developer error: " << parameter_name << " is a non-flag program "
+                << "parameter but was accessed as a flag. Use is_flag_set instead.";
       std::exit(1);
     } else if (!is_parameter_registered(parameter_name)) {
-      std::cerr
-          << "Developer error: Program is not configured with a parameter named"
-          << parameter_name << '"';
+      std::cerr << "Developer error: Program is not configured with a parameter named"
+                << parameter_name << '"';
       std::exit(1);
     }
     return std::any_cast<T>(parameters[parameter_name].value);
@@ -323,11 +311,11 @@ class Parser {
    * the argument parser. Named parameters with arguments provided by the end user are parsed into
    * the type assigned to the parameter by the developer. If valid input was provided, the value is
    * stored internally within the `Parser` and can be retrieved using the `get` method
-   * 
+   *
    * This method is intended to be called directly from a `main` function, taking in a program's
    * `argc` and `argv` arguments. If parsing the program arguments fails for any reason, this method
    * will exit the program
-   * 
+   *
    * Reasons this method might fail:
    * - The end user did not provide a required argument
    * - The end user provided a value for an argument could not be parsed into its assigned type
@@ -351,8 +339,8 @@ class Parser {
    * arguments found by the parser wrapped in a `std::expected` upon success, otherwise a
    * `std::unexpected` containing a list of errors that occurred
    */
-  std::expected<std::vector<std::string>, std::vector<std::string>>
-  parse_arguments(const std::vector<std::string_view>& arguments);
+  std::expected<std::vector<std::string>, std::vector<std::string>> parse_arguments(
+      const std::vector<std::string_view>& arguments);
 
   /**
    * @brief Determine whether the end user provided a given parameter at the command line
@@ -374,8 +362,8 @@ class Parser {
    * @return std::expected<void, std::string> An empty `std::expected` upon success, otherwise a
    * `std::unexpected` containing an error message explaining why parsing the user's input failed
    */
-  std::expected<void, std::string> attempt_parse(
-      const std::string& parameter_name, std::string_view input);
+  std::expected<void, std::string> attempt_parse(const std::string& parameter_name,
+                                                 std::string_view input);
 
   /**
    * @brief Determine whether the end user provided all required input parameters
@@ -394,24 +382,24 @@ class Parser {
    * - The end user provided a value for an argument could not be parsed into its assigned type
    * - The end user failed to provide a value for a parameter that takes a value
    * - The end user provided a value for a flag parameter, which don't take values
-   * 
+   *
    * @param argument The argument to handle
    * @return std::expected<std::optional<std::string>, std::string> A `std::expected` containing an
    * optional `std::string` value. A string is returned if the program argument was a positional
    * argument. A `std::unexpected` wrapping a `std::string` error message is returned in the event
    * that an error occurred
    */
-  std::expected<std::optional<std::string>, std::string>
-  handle_program_argument(std::string_view argument);
+  std::expected<std::optional<std::string>, std::string> handle_program_argument(
+      std::string_view argument);
 
   /**
    * @brief Given a parameter name and value provided by the end user, ensure that a) the parameter
    * is a known program parameter, b) it accepts a value (i.e., is a non-flag parameter), and c)
    * the provided value can be parsed into the type assigned to the parameter by the developer
-   * 
+   *
    * If all the above criteria are met, the resulting parsed value is stored internally and can be
    * retrieved using the `get` function
-   * 
+   *
    * In any other case, an error message is returned
    *
    * @param parameter_name The text found after the `--` and before the `=`
@@ -420,14 +408,13 @@ class Parser {
    * an empty `std::optional` wrapped in a `std::expected`. Upon failure, returns a
    * `std::unexpected` with an error message explaining why handling the parameter failed
    */
-  std::expected<std::optional<std::string>, std::string>
-  handle_parameter_token_with_value(const std::string& parameter_name,
-                                    std::string_view value);
+  std::expected<std::optional<std::string>, std::string> handle_parameter_token_with_value(
+      const std::string& parameter_name, std::string_view value);
 
   /**
    * @brief Given a flag name, ensure that the program does indeed accept a flag with that name. If
    * one does, this method sets that flag to `true`, and `is_flag_set` will return `true`
-   * 
+   *
    * If the program doesn't take a flag with that name, an error message is returned
    *
    * @param flag_name The name of the parameter that was passed as a flag
