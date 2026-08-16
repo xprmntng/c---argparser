@@ -25,10 +25,10 @@ int main(int argc, char** argv) {
   Args::Parser parser;
 
   parser.add_required_parameter<int>("age", "Your age")
-      .add_required_parameter<std::string>("name", "Your name")
-      .add_required_parameter<Banana>("banana", "Tell me about that banana")
-      .add_optional_parameter("coolness-factor", 5.0, "Just how cool are you?")
-      .add_flag_parameter("super-cool", "Are you super cool?");
+        .add_required_parameter<std::string>("name", "Your name")
+        .add_required_parameter<Banana>("banana", "Tell me about that banana")
+        .add_optional_parameter("coolness-factor", 5.0, "Just how cool are you?")
+        .add_flag_parameter("super-cool", "Are you super cool?");
 
   const auto positional_args = parser.parse_program_arguments(argc, argv);
 
