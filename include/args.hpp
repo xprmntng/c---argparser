@@ -227,6 +227,11 @@ class Parser {
   template <Parsable T>
   Parser& add_required_parameter(const std::string& name,
                                  std::string_view description) {
+    if (is_parameter_registered(name) || is_flag_registered(name)) {
+      std::cerr << "Developer error: Parameter \"" << name << "\" was defined multiple times which "
+                << "is illegal";
+      std::exit(1);
+    }
     this->parameters[name] =
         ProgramParameter{parse<T>, std::any(), std::string(description),
                          false,    true,       get_type_name<T>()};
@@ -252,6 +257,11 @@ class Parser {
   template <Parsable T>
   Parser& add_optional_parameter(const std::string& name, T default_value,
                                  std::string_view description) {
+    if (is_parameter_registered(name) || is_flag_registered(name)) {
+      std::cerr << "Developer error: Parameter \"" << name << "\" was defined multiple times which "
+                << "is illegal";
+      std::exit(1);
+    }
     this->parameters[name] = ProgramParameter{
         parse<T>, std::any(default_value), std::string(description), false,
         false,    get_type_name<T>()};
