@@ -57,10 +57,9 @@ concept ImplementsFromChars = requires(const char* start, const char* end, T& ou
 };
 
 /**
- * @brief Defines a concept which identifies types that have a static member
- * function, `from_string(std::string_view) -> std::expected<T, std::string>`,
- * which can be used to attempting creating a `T` from a `std::string_view`
- * input
+ * @brief Defines a concept which identifies types that have a static member function,
+ * `from_string(std::string_view) -> std::expected<T, std::string>`, which can be used to attempting
+ * creating a `T` from a `std::string_view` input
  *
  * @tparam T The type to be assessed
  */
@@ -70,13 +69,11 @@ concept TypeImplementsFromString = requires(std::string_view s) {
 };
 
 /**
- * @brief Defines a concept for types that are parsable. A type is considered
- * parsable if: a) The standard library implements `std::from_chars` for that
- * type OR b) The type has a constructor that takes a single argument:
- * `std::string_view` OR c) The type implements a static function,
- * `from_string(std::string_view s)`, with return type `std::expected<T,
- * std::string>`, which attempts to create a `T` object from a
- * `std::string_view`
+ * @brief Defines a concept for types that are parsable. A type is considered parsable if: a) The
+ * standard library implements `std::from_chars` for that type OR b) The type has a constructor that
+ * takes a single argument: `std::string_view` OR c) The type implements a static function,
+ * `from_string(std::string_view s)`, with return type `std::expected<T, std::string>`, which
+ * attempts to create a `T` object from a `std::string_view`
  *
  * @tparam T The type to be assessed
  */
@@ -106,16 +103,14 @@ std::expected<T, std::string> from_string(std::string_view s) {
 }
 
 /**
- * @brief Template that produces a `from_string` function for any type that has
- * a `std::from_chars` implementation. The function will attempt to create a `T`
- * from a string input
+ * @brief Template that produces a `from_string` function for any type that has a `std::from_chars`
+ * implementation. The function will attempt to create a `T` from a string input
  *
  * @tparam T The type whose `std::from_chars` implementation should be called
- * @param s The input string to attempt to create a `T` from via
- * `std::from_chars`
+ * @param s The input string to attempt to create a `T` from via `std::from_chars`
  * @return std::expected<T, std::string> A `T` resulting from a successful call
- * to `std::from_chars`, otherwise a `std::unexpected<std::string>` containing
- * an error message explaining why parsing failed
+ * to `std::from_chars`, otherwise a `std::unexpected<std::string>` containing an error message
+ * explaining why parsing failed
  */
 template <ImplementsFromChars T>
 std::expected<T, std::string> from_string(std::string_view s) {
@@ -133,16 +128,15 @@ std::expected<T, std::string> from_string(std::string_view s) {
 }
 
 /**
- * @brief Template that wraps a successful call to `from_string<T>` for any type
- * that has a `std::from_chars` implementation in a `std::any`. This allows for
- * "erasing" the type of the parsing result until unboxing occurs
+ * @brief Template that wraps a successful call to `from_string<T>` for any type that has a
+ * `std::from_chars` implementation in a `std::any`. This allows for "erasing" the type of the
+ * parsing result until unboxing occurs
  *
  * @tparam T The type who has a `std::from_chars` implementation
  * @param s The string input to parse
- * @return std::expected<std::any, std::string> A `std::any` wrapping the result
- * of calling `from_string<T>` on the input string if parsing was successful,
- * otherwise a `std::unexpected<std::string>` containing an error message
- * explaining why parsing failed
+ * @return std::expected<std::any, std::string> A `std::any` wrapping the result of calling
+ * `from_string<T>` on the input string if parsing was successful, otherwise a
+ * `std::unexpected<std::string>` containing an error message explaining why parsing failed
  */
 template <typename T>
   requires ImplementsFromChars<T> || std::constructible_from<T, std::string_view>
@@ -155,17 +149,15 @@ std::expected<std::any, std::string> parse(std::string_view s) {
 }
 
 /**
- * @brief Template that wraps a successful call to `T::from_string` in a
- * `std::any` for any type that has a static `from_string(std::string_view) ->
- * std::expected<T, std::string>` function. This allows for "erasing" the type
- * of the parsing result until unboxing occurs
+ * @brief Template that wraps a successful call to `T::from_string` in a `std::any` for any type
+ * that has a static `from_string(std::string_view) -> std::expected<T, std::string>` function. This
+ * allows for "erasing" the type of the parsing result until unboxing occurs
  *
  * @tparam T The type who has a `T::from_string` function
  * @param s The string input to parse
- * @return std::expected<std::any, std::string> A `std::any` wrapping the result
- * of calling `from_string<T>` on the input string if parsing was successful,
- * otherwise a `std::unexpected<std::string>` containing an error message
- * explaining why parsing failed
+ * @return std::expected<std::any, std::string> A `std::any` wrapping the result of calling
+ * `from_string<T>` on the input string if parsing was successful, otherwise a
+ * `std::unexpected<std::string>` containing an error message explaining why parsing failed
  */
 template <TypeImplementsFromString T>
 std::expected<std::any, std::string> parse(std::string_view s) {
@@ -177,9 +169,9 @@ std::expected<std::any, std::string> parse(std::string_view s) {
 }
 
 /**
- * @brief Defines a function pointer type for parse functions that have one
- * parameter, a `std::string_view`, and return a `std::any` upon success or a
- * `std::string` containing an error message upon failure
+ * @brief Defines a function pointer type for parse functions that have one parameter, a
+ * `std::string_view`, and return a `std::any` upon success or a `std::string` containing an error
+ * message upon failure
  */
 using ParseFunction = std::function<std::expected<std::any, std::string>(std::string_view)>;
 
@@ -197,11 +189,10 @@ struct ProgramParameter {
 };
 
 /**
- * @brief Program argument parser which can be used to define a list of
- * parameters and flags that a program accepts. A parser will attempt to parse
- * the user's input during program invocation. If parsing is successful, the
- * developer can then retrieve the user's input from the parser, "automagically"
- * converting the user's input to the types assigned to each parameter by the
+ * @brief Program argument parser which can be used to define a list of parameters and flags that a
+ * program accepts. A parser will attempt to parse the user's input during program invocation. If
+ * parsing is successful, the developer can then retrieve the user's input from the parser,
+ * "automagically" converting the user's input to the types assigned to each parameter by the
  * developer
  */
 class Parser {
