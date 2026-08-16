@@ -259,30 +259,36 @@ class Parser {
   }
 
   /**
-   * @brief
+   * @brief Define a flag parameter that defaults to `false` (unset) unless the flag is provided by
+   * the end user of the program, in which case it will be set to `true`. The status of whether a
+   * flag parameter was provided can be checked using the `is_flag_set` method
    *
-   * @param flag_name
-   * @param description
-   * @return Parser&
+   * @param flag_name The name under which to register the flag
+   * @param description Text for the help menu that will explain the meaning of the flag to the user
+   * @return Parser& A reference to the `Parser` object this method was invoked upon
    */
   Parser& add_flag_parameter(const std::string& flag_name,
                              std::string_view description);
 
   /**
-   * @brief
+   * @brief Determine whether a flag parameter was passed by the end user at the command line
    *
-   * @param flag_name
-   * @return true
-   * @return false
+   * @param flag_name The name of the flag to look up
+   * @return true If the flag was provided by the end user
+   * @return false If the flag was NOT provided by the end user
    */
   bool is_flag_set(const std::string& flag_name);
 
   /**
-   * @brief
+   * @brief Get the argument for a non-flag parameter given by the end user. If the parameter is
+   * optional and the end user did not supply the parameter, this method returns the default
+   * argument provided by the developer instead
    *
-   * @tparam T
-   * @param parameter_name
-   * @return T
+   * @tparam T The type to retrieve the stored data as
+   * @param parameter_name The name of the parameter to look up
+   * @return T The result of parsing the user's input into a `T` if the user provided input. If the
+   * parameter is an optional parameter and the end user did not provide the parameter, this instead
+   * returns the default value provided by the developer
    */
   template <typename T>
   T get(const std::string& parameter_name) {
@@ -302,116 +308,166 @@ class Parser {
   }
 
   /**
-   * @brief
+   * @brief Parse the program's argument list. Named program parameters are identified by a leading
+   * `--`. Any argument without a leading `--` is considered a positional argument and collected by
+   * the argument parser. Named parameters with arguments provided by the end user are parsed into
+   * the type assigned to the parameter by the developer. If valid input was provided, the value is
+   * stored internally within the `Parser` and can be retreived using the `get` method
+   * 
+   * This method is intended to be called directly from a `main` function, taking in a program's
+   * `argc` and `argv` arguments. If parsing the program arguments fails for any reason, this method
+   * will exit the program
+   * 
+   * Reasons this method might fail:
+   * - The end user did not provide a required argument
+   * - The end user provided a value for an argument could not be parsed into its assigned type
+   * - The end user failed to provide a value for a parameter that takes a value
+   * - The end user provided a value for a flag parameter, which don't take values
    *
-   * @param argc
-   * @param argv
-   * @return std::vector<std::string>
+   * @param argc The number of arguments passed to the program, plus 1 because of the inclusion of
+   * the program path and name
+   * @param argv The list of program arguments, with the first element being the executable passed
+   * to the operating system as the program was executed
+   * @return std::vector<std::string> A list of positional arguments found by the parser
    */
   std::vector<std::string> parse_program_arguments(int argc, char** argv);
 
   /**
-   * @brief
+   * @brief Parse a list of arguments using the parser. This method exists so that the
+   * parser may be unit tested without relying on a `main` function
    *
-   * @param arguments
-   * @return std::expected<std::vector<std::string>, std::vector<std::string>>
+   * @param arguments A list of arguments to parse
+   * @return std::expected<std::vector<std::string>, std::vector<std::string>> A list of positional
+   * arguments found by the parser wrapped in a `std::expected` upon success, otherwise a
+   * `std::unexpected` containing a list of errors that occurred
    */
   std::expected<std::vector<std::string>, std::vector<std::string>>
   parse_arguments(const std::vector<std::string_view>& arguments);
 
   /**
-   * @brief
+   * @brief Determine whether the end user provided a given parameter at the command line
    *
-   * @param parameter_name
-   * @return true
-   * @return false
+   * @param parameter_name The name of the parameter to look up
+   * @return true If the parameter was provided
+   * @return false If the parameter was NOT provide
    */
   bool was_parameter_provided(const std::string& parameter_name);
 
  private:
   /**
-   * @brief
+   * @brief Attempt to parse a user input string into the type assigned to a parameter by the
+   * developer. Upon success, store it internally within the `Parser` to be retrieved later by the
+   * developer via the `get` function
    *
-   * @param parameter_name
-   * @param input
-   * @return std::expected<void, std::string>
+   * @param parameter_name The name of the parameter that the value should be associated with
+   * @param input The user's input
+   * @return std::expected<void, std::string> An empty `std::expected` upon success, otherwise a
+   * `std::unexpected` containing an error message explaining why parsing the user's input failed
    */
   std::expected<void, std::string> attempt_parse(
       const std::string& parameter_name, std::string_view input);
 
   /**
-   * @brief
+   * @brief Determine whether the end user provided all required input parameters
    *
-   * @return std::expected<void, std::vector<std::string>>
+   * @return std::expected<void, std::vector<std::string>> An empty `std::expected` if all required
+   * program parameters were provided by the end user, otherwise a `std::unexpected` containing a
+   * string with a list of parameters that were missing
    */
   std::expected<void, std::vector<std::string>> check_for_missing_parameters();
 
   /**
-   * @brief
+   * @brief Attempt handling a single program argument, which could be a parameter in
+   * `--param=value` format, a flag in `--flag` format, or a positional argument (no leading `--`)
    *
-   * @param argument
-   * @return std::expected<std::optional<std::string>, std::string>
+   * Reasons this method might fail:
+   * - The end user provided a value for an argument could not be parsed into its assigned type
+   * - The end user failed to provide a value for a parameter that takes a value
+   * - The end user provided a value for a flag parameter, which don't take values
+   * 
+   * @param argument The argument to handle
+   * @return std::expected<std::optional<std::string>, std::string> A `std::expected` containing an
+   * optional `std::string` value. A string is returned if the program argument was a positional
+   * argument. A `std::unexpected` wrapping a `std::string` error message is returned in the event
+   * that an error occurred
    */
   std::expected<std::optional<std::string>, std::string>
   handle_program_argument(std::string_view argument);
 
   /**
-   * @brief
+   * @brief Given a parameter name and value provided by the end user, ensure that a) the parameter
+   * is a known program parameter, b) it accepts a value (i.e., is a non-flag parameter), and c)
+   * the provided value can be parsed into the type assigned to the parameter by the developer
+   * 
+   * If all the above criteria are met, the resulting parsed value is stored internally and can be
+   * retrieved using the `get` function
+   * 
+   * In any other case, an error message is returned
    *
-   * @param parameter_name
-   * @param value
-   * @return std::expected<std::optional<std::string>, std::string>
+   * @param parameter_name The text found after the `--` and before the `=`
+   * @param value The text found after the `=`
+   * @return std::expected<std::optional<std::string>, std::string> Upon success, always returns
+   * an empty `std::optional` wrapped in a `std::expected`. Upon failure, returns a
+   * `std::unexpected` with an error message explaining why handling the parameter failed
    */
   std::expected<std::optional<std::string>, std::string>
   handle_parameter_token_with_value(const std::string& parameter_name,
                                     std::string_view value);
 
   /**
-   * @brief
+   * @brief Given a flag name, ensure that the program does indeed accept a flag with that name. If
+   * one does, this method sets that flag to `true`, and `is_flag_set` will return `true`
+   * 
+   * If the program doesn't take a flag with that name, an error message is returned
    *
-   * @param flag_name
-   * @return std::expected<std::optional<std::string>, std::string>
+   * @param flag_name The name of the parameter that was passed as a flag
+   * @return std::expected<std::optional<std::string>, std::string> An empty `std::optional` upon
+   * success, otherwise a `std::unexpected` containing a `std::string` error message
    */
   std::expected<std::optional<std::string>, std::string> handle_flag_token(
       const std::string& flag_name);
 
   /**
-   * @brief
+   * @brief Determine whether a given program parameter has a value assigned to it
    *
-   * @param parameter_name
-   * @return true
+   * @param parameter_name The name of the parameter to look up
+   * @return true In the case that the end user provided the parameter with a value OR the parameter
+   * is optional and thus has a default value
    * @return false
    */
   bool does_parameter_have_value(const std::string& parameter_name);
 
   /**
-   * @brief
+   * @brief Determine whether a program parameter that takes a value is registered with this
+   * `Parser`
    *
-   * @param parameter_name
-   * @return true
-   * @return false
+   * @param parameter_name The name of the parameter to look up
+   * @return true If the parameter exists and takes a value
+   * @return false If the parameter does not exist or is a flag parameter
    */
   bool is_parameter_registered(const std::string& parameter_name);
 
   /**
-   * @brief
+   * @brief Determine whether a flag parameter is registered with this `Parser`
    *
-   * @param flag_name
-   * @return true
-   * @return false
+   * @param flag_name The name of the flag to look up
+   * @return true If the parameter exists and is a flag
+   * @return false If the parameter does not exist or takes a value
    */
   bool is_flag_registered(const std::string& flag_name);
 
   /**
-   * @brief
-   *
+   * @brief Prints the program's help menu, which includes a list of each program parameter, whether
+   * that parameter is required, a developer-defined description of the parameter, and the type of
+   * data that the program is expecting to be passed with that parameter if the parameter takes a
+   * value
    */
   void print_help();
 
-  /// @brief
+  /// @brief Where program parameters are stored. Their name is the key, their state is the value
   std::unordered_map<std::string, ProgramParameter> parameters;
 
-  /// @brief
+  /// @brief The program path and name used to invoke the program. Set in `parse_program_arguments`
   std::string_view program_name = "";
 };
 }  // namespace Args
