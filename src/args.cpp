@@ -16,7 +16,7 @@ namespace Args {
 Parser& Parser::add_flag_parameter(const std::string& flag_name, string_view description) {
   if (is_parameter_registered(flag_name) || is_flag_registered(flag_name)) {
     std::cerr << "Developer error: Parameter \"" << flag_name
-              << "\" was defined multiple times which "
+              << "\" was defined multiple times, which "
               << "is illegal";
     std::exit(1);
   } else if (flag_name == "help") {
