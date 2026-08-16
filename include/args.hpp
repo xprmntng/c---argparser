@@ -214,6 +214,9 @@ class Parser {
       std::cerr << "Developer error: Parameter \"" << name << "\" was defined multiple times which "
                 << "is illegal";
       std::exit(1);
+    } else if (name == "help") {
+      std::cerr << "Developer error: The parameter name \"help\" is reserved";
+      std::exit(1);
     }
     this->parameters[name] = ProgramParameter{parse<T>, std::any(), std::string(description),
                                               false,    true,       get_type_name<T>()};
@@ -242,6 +245,9 @@ class Parser {
     if (is_parameter_registered(name) || is_flag_registered(name)) {
       std::cerr << "Developer error: Parameter \"" << name << "\" was defined multiple times which "
                 << "is illegal";
+      std::exit(1);
+    } else if (name == "help") {
+      std::cerr << "Developer error: The parameter name \"help\" is reserved";
       std::exit(1);
     }
     this->parameters[name] =

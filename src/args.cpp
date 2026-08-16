@@ -19,7 +19,10 @@ Parser& Parser::add_flag_parameter(const std::string& flag_name, string_view des
               << "\" was defined multiple times which "
               << "is illegal";
     std::exit(1);
-  }
+  } else if (flag_name == "help") {
+      std::cerr << "Developer error: The parameter name \"help\" is reserved";
+      std::exit(1);
+    }
   // Flag parameters don't have a parser and don't hold a value; instead,
   // "was_provided" defaults to false and gets set to true if the flag was
   // provided
