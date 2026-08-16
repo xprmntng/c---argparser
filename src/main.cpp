@@ -9,8 +9,7 @@ struct Banana {
   std::string color;
 
  public:
-  // Define how to create a Banana from a string. This makes the type compatible
-  // with Arg::Parser
+  // Define how to create a Banana from a string. This makes the type compatible with Arg::Parser
   Banana(std::string_view s) : color(s) {}
 };
 
